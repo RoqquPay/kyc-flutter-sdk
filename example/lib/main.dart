@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:roqqu_kyc/roqqu_kyc.dart';
+import 'mock_api_client.dart';
 
 void main() {
   runApp(const KycExampleApp());
@@ -20,362 +21,374 @@ class KycExampleApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const KycDemoScreen(),
+      home: const IntroPage(),
     );
   }
 }
 
-class KycDemoScreen extends StatefulWidget {
-  const KycDemoScreen({super.key});
+// -----------------------------------------------------------------------------
+// 1. Intro Page
+// -----------------------------------------------------------------------------
+class IntroPage extends StatelessWidget {
+  const IntroPage({super.key});
 
   @override
-  State<KycDemoScreen> createState() => _KycDemoScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.verified_user,
+                size: 80,
+                color: Color(0xFF6C5CE7),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'KYC SDK',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Identity Verification Demo',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 48),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SessionCreationPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start Verification'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _KycDemoScreenState extends State<KycDemoScreen> {
-  // SDK Configuration
-  KycConfig _config = KycConfig(
-    clearnessThreshold: 750,
-    clearnessLowerThreshold: 450,
-    livenessThreshold: 0.2,
-    enableAntispoofing: true,
-    maxFrameCount: 3,
-    framePassPercentage: 0.6,
-    debugMode: false,
-    kycTestEmails: [],
-  );
+// -----------------------------------------------------------------------------
+// 2. Session Creation Page
+// -----------------------------------------------------------------------------
+class SessionCreationPage extends StatefulWidget {
+  const SessionCreationPage({super.key});
 
-  // Liveness Check Service
-  final LivenessCheckService _livenessCheckService = LivenessCheckService();
+  @override
+  State<SessionCreationPage> createState() => _SessionCreationPageState();
+}
 
-  // Current stage simulation (driven by manager)
-  KycFaceRecognitionStage get _currentStage =>
-      _livenessCheckService.currentStage;
+class _SessionCreationPageState extends State<SessionCreationPage> {
+  final KycApiClient _apiClient = MockKycApiClient();
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _livenessCheckService.start();
+    _createSession();
   }
 
-  // Selected document type
-  KycAllowedId _selectedDoc = KycAllowedId.internationalPassport;
-
-  void _processFrame() {
+  Future<void> _createSession() async {
     setState(() {
-      _livenessCheckService.process(_simulatedFace, false);
+      _isLoading = true;
+      _error = null;
     });
-  }
 
-  void _reset() {
-    setState(() {
-      _livenessCheckService.start();
-      _simulatedFace = KycDetectedFace.initial();
-    });
+    try {
+      // Simulate API Call
+      final session = await _apiClient.createSession(
+        email: 'demo@roqqu.com',
+        userId: 'demo_user_123',
+      );
+
+      if (mounted) {
+        // Navigate to Liveness Check
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => LivenessCheckPage(session: session),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to create session. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Roqqu KYC SDK Demo'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Config Section
-            _buildSection(
-              'SDK Configuration',
-              child: Column(
+      appBar: AppBar(title: const Text('Initializing...')),
+      body: Center(
+        child: _isLoading
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildConfigRow(
-                    'Clearness Threshold',
-                    '${_config.clearnessThreshold}',
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Creating Secure Session...'),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.orange,
                   ),
-                  _buildConfigRow(
-                    'Clearness Lower',
-                    '${_config.clearnessLowerThreshold}',
-                  ),
-                  _buildConfigRow(
-                    'Liveness Threshold',
-                    '${_config.livenessThreshold}',
-                  ),
-                  _buildConfigRow(
-                    'Anti-Spoofing',
-                    _config.isAntispoofingEnabled ? 'Enabled' : 'Disabled',
-                  ),
-                  _buildConfigRow(
-                    'Debug Mode',
-                    _config.debugMode ? 'On' : 'Off',
-                  ),
-                  _buildConfigRow(
-                    'Can Test KYC',
-                    _config.canTestKyc ? 'Yes' : 'No',
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _config = _config.copyWith(
-                          debugMode: !_config.debugMode,
-                        );
-                      });
-                    },
-                    icon: const Icon(Icons.settings),
-                    label: const Text('Toggle Debug Mode'),
+                  const SizedBox(height: 16),
+                  Text(_error ?? 'Unknown Error'),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _createSession,
+                    child: const Text('Retry'),
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Face Recognition Stage
-            // Face Recognition Stage - Live View Simulation
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Stack(
-                children: [
-                  // Mock Camera Feed/Placeholder
-                  Center(
-                    child: Icon(
-                      Icons.face,
-                      size: 100,
-                      color: Colors.white.withOpacity(0.3),
-                    ),
-                  ),
-
-                  // Instruction Overlay
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.transparent, Colors.black87],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(16),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _currentStage.label.toUpperCase().replaceAll(
-                              '_',
-                              ' ',
-                            ),
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Step ${_currentStage.step} of ${KycFaceRecognitionStage.values.length - 1}',
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          const SizedBox(height: 16),
-                          LinearProgressIndicator(
-                            value: _currentStage.progress,
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFF6C5CE7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Reset Button (Top Right)
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: IconButton.filledTonal(
-                      onPressed: _reset,
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Reset Flow',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Document Types
-            _buildSection(
-              'Allowed Document Types',
-              child: Column(
-                children: KycAllowedId.values.map((doc) {
-                  return RadioListTile<KycAllowedId>(
-                    title: Text(doc.title),
-                    subtitle: Text('Key: ${doc.key}'),
-                    value: doc,
-                    groupValue: _selectedDoc,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _selectedDoc = value);
-                      }
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Verification States
-            _buildSection(
-              'Verification States',
-              child: Column(
-                children: KycVerificationState.values.map((state) {
-                  return ListTile(
-                    leading: CircleAvatar(child: Text('${state.step}')),
-                    title: Text(state.label.replaceAll('_', ' ').toUpperCase()),
-                    dense: true,
-                  );
-                }).toList(),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Face Detection Simulation
-            _buildSection(
-              'Face Detection Simulation (Mock)',
-              child: Column(
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildSimButton('No Face', KycDetectedFace.initial()),
-                      _buildSimButton(
-                        'Smiling',
-                        _createMockFace(isSmiling: true),
-                      ),
-                      _buildSimButton(
-                        'Turn Left',
-                        _createMockFace(turnedLeft: true),
-                      ),
-                      _buildSimButton(
-                        'Turn Right',
-                        _createMockFace(turnedRight: true),
-                      ),
-                      _buildSimButton(
-                        'Blinking',
-                        _createMockFace(isBlinking: true),
-                      ),
-                      _buildSimButton(
-                        'Good Face',
-                        _createMockFace(isWellPositioned: true),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const Text('Detected Attributes:'),
-                  const SizedBox(height: 8),
-                  _buildAttributeRow('Face Found', _simulatedFace.faceFound),
-                  _buildAttributeRow(
-                    'Well Positioned',
-                    _simulatedFace.faceIsWellPositioned,
-                  ),
-                  _buildAttributeRow('Smiling', _simulatedFace.isSmiling),
-                  _buildAttributeRow('Turned Left', _simulatedFace.turnedLeft),
-                  _buildAttributeRow(
-                    'Turned Right',
-                    _simulatedFace.turnedRight,
-                  ),
-                  _buildAttributeRow('Blinking', _simulatedFace.isBlinking),
-                  _buildAttributeRow('Mouth Open', _simulatedFace.isMouthOpen),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
+}
 
-  // Simulation State
+// -----------------------------------------------------------------------------
+// 3. Liveness Check Page (Main Simulation)
+// -----------------------------------------------------------------------------
+class LivenessCheckPage extends StatefulWidget {
+  final KycSession session;
+  const LivenessCheckPage({super.key, required this.session});
+
+  @override
+  State<LivenessCheckPage> createState() => _LivenessCheckPageState();
+}
+
+class _LivenessCheckPageState extends State<LivenessCheckPage> {
+  late LivenessCheckService _service;
   KycDetectedFace _simulatedFace = KycDetectedFace.initial();
 
-  KycDetectedFace _createMockFace({
-    bool isSmiling = false,
-    bool turnedLeft = false,
-    bool turnedRight = false,
-    bool isBlinking = false,
-    bool isWellPositioned = false,
-  }) {
-    // We can't easily instantiate a real 'Face' object here without ml_kit dependency directly
-    // but KycDetectedFace takes a Face? which can be null for mock visualization
-    // IF we trust the flags.
-    // However, KycDetectedFace.initial() sets face=null.
-    // Our service sets these boolean flags based on the Face.
-    // For simulation, we just want to create a KycDetectedFace with specific flags.
-    // But KycDetectedFace constructor requires all fields.
-    return KycDetectedFace(
-      face: null, // Mock doesn't have a real Face object
-      faceIsWellPositioned: isWellPositioned,
-      isSmiling: isSmiling,
-      isFrowning: false,
-      turnedLeft: turnedLeft,
-      turnedRight: turnedRight,
-      lookingAway: false,
-      isBlinking: isBlinking,
-      isMouthOpen: false,
-      isNodding: false,
-      isFaceCloseEnough: true,
-    );
+  // Debug toggle
+  bool _showDebugControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = LivenessCheckService();
+    _service.start();
   }
 
-  Widget _buildSimButton(String label, KycDetectedFace face) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: () {
-        setState(() => _simulatedFace = face);
-        _processFrame();
-      },
-      backgroundColor: _simulatedFace == face
-          ? Theme.of(context).colorScheme.primaryContainer
-          : null,
-    );
+  void _processFrame() async {
+    // Process a burst of frames to simulate holding the pose
+    // This ensures a single tap is enough to satisfy the 2-frame requirement
+    for (int i = 0; i < 5; i++) {
+      if (!mounted) return;
+
+      setState(() {
+        final stage = _service.process(_simulatedFace, false);
+        if (stage == KycFaceRecognitionStage.done) {
+          // Add post-frame callback only once
+          if (i == 4) {
+            // Only navigate at the end of the burst or break early?
+            // Actually, we should check if done and return immediately to avoid multiple navigations
+          }
+        }
+      });
+
+      if (_service.currentStage == KycFaceRecognitionStage.done) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ResultPage(session: widget.session),
+            ),
+          );
+        });
+        return; // Stop processing
+      }
+
+      await Future.delayed(
+        const Duration(milliseconds: 30),
+      ); // Simulate 30fps interval
+    }
   }
 
-  Widget _buildAttributeRow(String label, bool value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
         children: [
-          Icon(
-            value ? Icons.check_circle : Icons.cancel,
-            color: value ? Colors.green : Colors.grey,
-            size: 16,
+          // 1. Camera View Placeholder
+          Center(
+            child: Icon(
+              Icons.face,
+              size: 150,
+              color: Colors.white.withOpacity(0.1),
+            ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: value
-                  ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              fontWeight: value ? FontWeight.bold : FontWeight.normal,
+
+          // 2. Mock Face Overlay (Visual Feedback of Simulation)
+          if (_showDebugControls)
+            Positioned(
+              top: 50,
+              left: 20,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SIMULATED FACE STATE:',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                    _statusRow('Found', _simulatedFace.faceFound),
+                    _statusRow('Smiling', _simulatedFace.isSmiling),
+                    _statusRow('Mouth Open', _simulatedFace.isMouthOpen),
+                    _statusRow('Left', _simulatedFace.turnedLeft),
+                    _statusRow('Right', _simulatedFace.turnedRight),
+                  ],
+                ),
+              ),
+            ),
+
+          // 3. KYC Instructions & Progress Overlay (Top)
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(
+                  top: 60,
+                  left: 24,
+                  right: 24,
+                  bottom: 24,
+                ),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black87, Colors.transparent],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _service.currentStage.label.toUpperCase().replaceAll(
+                        '_',
+                        ' ',
+                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Step ${_service.currentStage.step} of ${KycFaceRecognitionStage.values.length - 1}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: _service.currentStage.progress,
+                      backgroundColor: Colors.white24,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF6C5CE7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Debug Controls (Bottom Sheet)
+          if (_showDebugControls)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SIMULATION CONTROLS',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _simBtn('Reset', KycDetectedFace.initial()),
+                        _simBtn('Smile', _mockFace(isSmiling: true)),
+                        _simBtn('Mouth Open', _mockFace(isMouthOpen: true)),
+                        _simBtn('Left', _mockFace(turnedLeft: true)),
+                        _simBtn('Right', _mockFace(turnedRight: true)),
+                        _simBtn('Neutral', _mockFace(isWellPositioned: true)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Top Bar
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    _showDebugControls
+                        ? Icons.bug_report
+                        : Icons.bug_report_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showDebugControls = !_showDebugControls),
+                  tooltip: 'Toggle Debug Controls',
+                ),
+              ],
             ),
           ),
         ],
@@ -383,35 +396,155 @@ class _KycDemoScreenState extends State<KycDemoScreen> {
     );
   }
 
-  Widget _buildSection(String title, {required Widget child}) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+  Widget _statusRow(String label, bool active) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            active ? Icons.circle : Icons.circle_outlined,
+            size: 8,
+            color: active ? Colors.green : Colors.grey,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.white54,
+              fontSize: 12,
             ),
-            const Divider(),
-            child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _simBtn(String label, KycDetectedFace face) {
+    bool isActive = _simulatedFace == face;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _simulatedFace = face);
+        _processFrame();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF6C5CE7) : Colors.white10,
+          borderRadius: BorderRadius.circular(20),
+          border: isActive ? Border.all(color: Colors.white30) : null,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  KycDetectedFace _mockFace({
+    bool isSmiling = false,
+    bool turnedLeft = false,
+    bool turnedRight = false,
+    bool isMouthOpen = false,
+    bool isWellPositioned = false,
+  }) {
+    return KycDetectedFace(
+      face: null,
+      faceIsWellPositioned: isWellPositioned,
+      isSmiling: isSmiling,
+      isFrowning: false,
+      turnedLeft: turnedLeft,
+      turnedRight: turnedRight,
+      lookingAway: false,
+      isBlinking: false,
+      isMouthOpen: isMouthOpen,
+      isNodding: false,
+      isFaceCloseEnough: true,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 4. Result Page
+// -----------------------------------------------------------------------------
+class ResultPage extends StatelessWidget {
+  final KycSession session;
+  const ResultPage({super.key, required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Verification Result')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            const Spacer(),
+            const Icon(Icons.check_circle, size: 100, color: Colors.green),
+            const SizedBox(height: 24),
+            Text(
+              'Verification Successful!',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your liveness check is complete.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const Spacer(),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _row('Session ID', session.sessionId),
+                    const Divider(),
+                    _row('Token', session.token), // Just show beginning
+                    const Divider(),
+                    _row(
+                      'Expires',
+                      session.expiry
+                          .toIso8601String()
+                          .split('T')
+                          .last
+                          .split('.')
+                          .first,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const IntroPage()),
+                    (route) => false,
+                  );
+                },
+                child: const Text('Done'),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildConfigRow(String label, String value) {
+  Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
         ],
       ),
     );

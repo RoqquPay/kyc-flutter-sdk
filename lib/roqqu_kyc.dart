@@ -18,3 +18,5 @@ part 'src/models/spoof_result.dart';
 part 'src/models/tier_level.dart';
 part 'src/services/face_detection_service.dart';
 part 'src/services/liveness_check_service.dart';
+part 'src/models/session.dart';
+part 'src/api/kyc_api_client.dart';
