@@ -5,7 +5,6 @@ class LivenessCheckService {
     this.gestureThreshold = 1,
   });
 
-  /// Threshold for gestures to be considered valid (frames count)
   final int gestureThreshold;
 
   final List<KycFaceRecognitionStage> _challengeSequence = [
@@ -18,12 +17,10 @@ class LivenessCheckService {
   KycFaceRecognitionStage _currentStage = KycFaceRecognitionStage.initial;
   int _challengeIndex = 0;
 
-  // Counters
   int _stepCounter = 0;
   int _gestureCount = 0;
   DateTime? _lastSuccessfulStepScanTime;
 
-  // Getters
   KycFaceRecognitionStage get currentStage => _currentStage;
   List<KycFaceRecognitionStage> get sequence =>
       List.unmodifiable(_challengeSequence);
@@ -36,8 +33,6 @@ class LivenessCheckService {
     _lastSuccessfulStepScanTime = DateTime.now();
   }
 
-  /// Process a frame result and return the updated stage
-  /// Returns null if no change in stage, or the same stage if progress updated
   KycFaceRecognitionStage process(
     KycDetectedFace face,
     bool isSpoof,
@@ -47,9 +42,7 @@ class LivenessCheckService {
 
     // Check timeout
     if (now.difference(_lastSuccessfulStepScanTime!) >
-        _maxStepDuration(_currentStage)) {
-      // Timeout handling
-    }
+        _maxStepDuration(_currentStage)) {}
 
     bool stepCompleted = false;
 
@@ -86,7 +79,7 @@ class LivenessCheckService {
       _gestureCount++;
       if (_gestureCount < gestureThreshold &&
           _challengeSequence.contains(_currentStage)) {
-        return _currentStage; // Waiting for more frames of gesture
+        return _currentStage;
       }
 
       _gestureCount = 0;

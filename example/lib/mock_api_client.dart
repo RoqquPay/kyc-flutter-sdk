@@ -6,7 +6,7 @@ class MockKycApiClient implements KycApiClient {
     required String email,
     required String userId,
   }) async {
-    await Future.delayed(const Duration(seconds: 2)); // Simulate network
+    await Future.delayed(const Duration(seconds: 2));
     return KycSession(
       sessionId: 'mock_session_${DateTime.now().millisecondsSinceEpoch}',
       token: 'mock_token',

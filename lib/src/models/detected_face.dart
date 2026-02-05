@@ -13,6 +13,7 @@ class KycDetectedFace {
     required this.isMouthOpen,
     required this.isNodding,
     required this.isFaceCloseEnough,
+    required this.feedback,
   });
 
   factory KycDetectedFace.initial() => const KycDetectedFace(
@@ -27,6 +28,7 @@ class KycDetectedFace {
         isMouthOpen: false,
         isNodding: false,
         isFaceCloseEnough: false,
+        feedback: KycFeedback.none,
       );
   final Face? face;
   final bool faceIsWellPositioned;
@@ -39,6 +41,7 @@ class KycDetectedFace {
   final bool isMouthOpen;
   final bool isNodding;
   final bool isFaceCloseEnough;
+  final KycFeedback feedback;
 
   KycDetectedFace copyWith({
     Face? face,
@@ -52,6 +55,7 @@ class KycDetectedFace {
     bool? isMouthOpen,
     bool? isNodding,
     bool? isFaceCloseEnough,
+    KycFeedback? feedback,
   }) =>
       KycDetectedFace(
         face: face ?? this.face,
@@ -65,6 +69,7 @@ class KycDetectedFace {
         isMouthOpen: isMouthOpen ?? this.isMouthOpen,
         isNodding: isNodding ?? this.isNodding,
         isFaceCloseEnough: isFaceCloseEnough ?? this.isFaceCloseEnough,
+        feedback: feedback ?? this.feedback,
       );
 }
 

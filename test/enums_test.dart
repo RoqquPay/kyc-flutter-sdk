@@ -14,11 +14,7 @@ void main() {
       expect(KycFaceRecognitionStage.done.step, 7);
     });
 
-    test('has descriptive labels', () {
-      expect(KycFaceRecognitionStage.initial.label, 'face_within');
-      expect(KycFaceRecognitionStage.smile.label, 'now_smile');
-      expect(KycFaceRecognitionStage.done.label, 'done');
-    });
+    // Label tests removed as localization is now handled by the consuming app
 
     test('showFaceLandMark returns true only for initial stages', () {
       expect(KycFaceRecognitionStage.initial.showFaceLandMark, true);

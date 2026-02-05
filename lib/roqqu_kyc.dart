@@ -1,4 +1,3 @@
-// ignore: unnecessary_library_name
 library roqqu_kyc;
 
 import 'dart:convert';
@@ -14,6 +13,7 @@ part 'src/models/detected_face.dart';
 part 'src/models/doc.dart';
 part 'src/models/enums.dart';
 part 'src/models/required_metadata.dart';
+part 'src/models/kyc_feedback.dart';
 part 'src/models/spoof_result.dart';
 part 'src/models/tier_level.dart';
 part 'src/services/face_detection_service.dart';

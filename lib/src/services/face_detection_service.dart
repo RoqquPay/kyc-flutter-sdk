@@ -67,28 +67,20 @@ class KycFaceDetectionService {
       faceIsWellPositioned = distanceFromCenter < maxDeviation;
     }
 
-    // 2. Head Pose (Rotation)
-    final rotY = face.headEulerAngleY ?? 0; // Yaw (Left/Right)
-    final rotX = face.headEulerAngleX ?? 0; // Pitch (Up/Down)
+    final rotY = face.headEulerAngleY ?? 0;
+    final rotX = face.headEulerAngleX ?? 0;
 
     final turnedLeft = rotY > _faceTurnThreshold;
     final turnedRight = rotY < -_faceTurnThreshold;
 
-    // Looking away if rotation exceeds 30 degrees in any significant direction
-    // (excluding slight natural tilt)
     final lookingAway = rotY.abs() > 30 || rotX.abs() > 30;
 
-    // 3. Facial Expressions
     final isSmiling = (face.smilingProbability ?? 0) > 0.5;
 
-    // Blinking: Both eyes closed
     final leftOpen = face.leftEyeOpenProbability ?? 1.0;
     final rightOpen = face.rightEyeOpenProbability ?? 1.0;
     final isBlinking = leftOpen < 0.3 && rightOpen < 0.3;
 
-    // Mouth Open analysis using landmarks
-    // Mouth Open analysis using contours (matching original implementation)
-    // Uses the distance between the bottom of the upper lip and top of the lower lip
     bool isMouthOpen = false;
     final upperLip = face.contours[FaceContourType.upperLipBottom]?.points;
     final lowerLip = face.contours[FaceContourType.lowerLipTop]?.points;
@@ -97,25 +89,30 @@ class KycFaceDetectionService {
         lowerLip != null &&
         upperLip.isNotEmpty &&
         lowerLip.isNotEmpty) {
-      // Use the middle points of the lips
       final upperMid = upperLip[upperLip.length ~/ 2];
       final lowerMid = lowerLip[lowerLip.length ~/ 2];
 
       final lipDistance = (lowerMid.y - upperMid.y).abs();
 
-      // Normalize by face height
       final faceHeight = face.boundingBox.height;
       final normalizedDistance = lipDistance / faceHeight;
 
       if (normalizedDistance >= 0.07) {
-        // ~7% of face height
         isMouthOpen = true;
       }
     }
 
-    // Nodding detection (Stub for single frame analysis)
-    // Would require stateful tracking of rotX history
     final isNodding = false;
+
+    KycFeedback feedback = KycFeedback.none;
+
+    if (!isFaceCloseEnough) {
+      feedback = KycFeedback.moveCloser;
+    } else if (!faceIsWellPositioned) {
+      feedback = KycFeedback.faceNotCentered;
+    } else if (turnedLeft || turnedRight || lookingAway) {
+      feedback = KycFeedback.faceRotated;
+    }
 
     return KycDetectedFace(
       face: face,
@@ -129,6 +126,7 @@ class KycFaceDetectionService {
       isMouthOpen: isMouthOpen,
       isNodding: isNodding,
       isFaceCloseEnough: isFaceCloseEnough,
+      feedback: feedback,
     );
   }
 }

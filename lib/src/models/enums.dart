@@ -1,19 +1,18 @@
 part of '../../roqqu_kyc.dart';
 
 enum KycFaceRecognitionStage {
-  initial(0, 'face_within'),
-  detectFace(1, 'detecting_face'),
-  tiltLeft(2, 'move_face_left'),
-  tiltRight(3, 'move_face_right'),
-  smile(4, 'now_smile'),
-  mouthOpen(5, 'open_mouth'),
-  stayStill(6, 'stay_still'),
-  done(7, 'done');
+  initial(0),
+  detectFace(1),
+  tiltLeft(2),
+  tiltRight(3),
+  smile(4),
+  mouthOpen(5),
+  stayStill(6),
+  done(7);
 
-  const KycFaceRecognitionStage(this.step, this.label);
+  const KycFaceRecognitionStage(this.step);
 
   final int step;
-  final String label;
 
   static KycFaceRecognitionStage? getNextStep(int currentStep) {
     const values = KycFaceRecognitionStage.values;
@@ -73,16 +72,14 @@ extension KycFaceRecognitionStageExtension on KycFaceRecognitionStage {
 }
 
 enum KycVerStatus {
-  verified('verified'),
-  awaitingApproval('awaiting_approval'),
-  ongoing('ongoing'),
-  faceMatchFailed('facematch_failed'),
-  rejected('rejected'),
-  awaitingFacialComparison('awaiting_facial_comparison');
+  verified(),
+  awaitingApproval(),
+  ongoing(),
+  faceMatchFailed(),
+  rejected(),
+  awaitingFacialComparison();
 
-  const KycVerStatus(this.label);
-
-  final String label;
+  const KycVerStatus();
 
   static KycVerStatus byValue(String status) {
     switch (status.toLowerCase()) {
@@ -127,17 +124,16 @@ enum KycAllowedId {
 }
 
 enum KycVerificationState {
-  checking(0, 'checking_video_quality'),
-  preparing(1, 'preparing_video_upload'),
-  transmitting(2, 'transmitting_video'),
-  matching(3, 'matching_biometrics'),
-  awaiting(4, 'awaiting_decision'),
-  finalized(5, 'biometrics_matched');
+  checking(0),
+  preparing(1),
+  transmitting(2),
+  matching(3),
+  awaiting(4),
+  finalized(5);
 
-  const KycVerificationState(this.step, this.label);
+  const KycVerificationState(this.step);
 
   final int step;
-  final String label;
 
   static KycVerificationState? getNextStep(int currentStep) {
     const values = KycVerificationState.values;

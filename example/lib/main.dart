@@ -26,9 +26,6 @@ class KycExampleApp extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 1. Intro Page
-// -----------------------------------------------------------------------------
 class IntroPage extends StatelessWidget {
   const IntroPage({super.key});
 
@@ -84,9 +81,6 @@ class IntroPage extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 2. Session Creation Page
-// -----------------------------------------------------------------------------
 class SessionCreationPage extends StatefulWidget {
   const SessionCreationPage({super.key});
 
@@ -112,14 +106,12 @@ class _SessionCreationPageState extends State<SessionCreationPage> {
     });
 
     try {
-      // Simulate API Call
       final session = await _apiClient.createSession(
         email: 'demo@roqqu.com',
         userId: 'demo_user_123',
       );
 
       if (mounted) {
-        // Navigate to Liveness Check
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => LivenessCheckPage(session: session),
@@ -172,9 +164,6 @@ class _SessionCreationPageState extends State<SessionCreationPage> {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 3. Liveness Check Page (Main Simulation)
-// -----------------------------------------------------------------------------
 class LivenessCheckPage extends StatefulWidget {
   final KycSession session;
   const LivenessCheckPage({super.key, required this.session});
@@ -187,7 +176,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
   late LivenessCheckService _service;
   KycDetectedFace _simulatedFace = KycDetectedFace.initial();
 
-  // Debug toggle
   bool _showDebugControls = true;
 
   @override
@@ -198,20 +186,11 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
   }
 
   void _processFrame() async {
-    // Process a burst of frames to simulate holding the pose
-    // This ensures a single tap is enough to satisfy the 2-frame requirement
     for (int i = 0; i < 5; i++) {
       if (!mounted) return;
 
       setState(() {
-        final stage = _service.process(_simulatedFace, false);
-        if (stage == KycFaceRecognitionStage.done) {
-          // Add post-frame callback only once
-          if (i == 4) {
-            // Only navigate at the end of the burst or break early?
-            // Actually, we should check if done and return immediately to avoid multiple navigations
-          }
-        }
+        _service.process(_simulatedFace, false);
       });
 
       if (_service.currentStage == KycFaceRecognitionStage.done) {
@@ -222,12 +201,31 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
             ),
           );
         });
-        return; // Stop processing
+        return;
       }
 
-      await Future.delayed(
-        const Duration(milliseconds: 30),
-      ); // Simulate 30fps interval
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
+  }
+
+  String _getStageLabel(KycFaceRecognitionStage stage) {
+    switch (stage) {
+      case KycFaceRecognitionStage.initial:
+        return 'FACE WITHIN';
+      case KycFaceRecognitionStage.detectFace:
+        return 'DETECTING FACE';
+      case KycFaceRecognitionStage.tiltLeft:
+        return 'MOVE FACE LEFT';
+      case KycFaceRecognitionStage.tiltRight:
+        return 'MOVE FACE RIGHT';
+      case KycFaceRecognitionStage.smile:
+        return 'NOW SMILE';
+      case KycFaceRecognitionStage.mouthOpen:
+        return 'OPEN MOUTH';
+      case KycFaceRecognitionStage.stayStill:
+        return 'STAY STILL';
+      case KycFaceRecognitionStage.done:
+        return 'DONE';
     }
   }
 
@@ -237,7 +235,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Camera View Placeholder
           Center(
             child: Icon(
               Icons.face,
@@ -246,7 +243,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
             ),
           ),
 
-          // 2. Mock Face Overlay (Visual Feedback of Simulation)
           if (_showDebugControls)
             Positioned(
               top: 50,
@@ -274,7 +270,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
               ),
             ),
 
-          // 3. KYC Instructions & Progress Overlay (Top)
           Align(
             alignment: Alignment.topCenter,
             child: SafeArea(
@@ -297,10 +292,7 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _service.currentStage.label.toUpperCase().replaceAll(
-                        '_',
-                        ' ',
-                      ),
+                      _getStageLabel(_service.currentStage),
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             color: Colors.white,
@@ -327,7 +319,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
             ),
           ),
 
-          // Debug Controls (Bottom Sheet)
           if (_showDebugControls)
             Align(
               alignment: Alignment.bottomCenter,
@@ -369,7 +360,6 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
               ),
             ),
 
-          // Top Bar
           Positioned(
             top: 0,
             left: 0,
@@ -460,13 +450,11 @@ class _LivenessCheckPageState extends State<LivenessCheckPage> {
       isMouthOpen: isMouthOpen,
       isNodding: false,
       isFaceCloseEnough: true,
+      feedback: KycFeedback.none,
     );
   }
 }
 
-// -----------------------------------------------------------------------------
-// 4. Result Page
-// -----------------------------------------------------------------------------
 class ResultPage extends StatelessWidget {
   final KycSession session;
   const ResultPage({super.key, required this.session});
