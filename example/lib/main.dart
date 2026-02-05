@@ -217,8 +217,129 @@ class _KycDemoScreenState extends State<KycDemoScreen> {
                 }).toList(),
               ),
             ),
+
+            const SizedBox(height: 24),
+
+            // Face Detection Simulation
+            _buildSection(
+              'Face Detection Simulation (Mock)',
+              child: Column(
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildSimButton('No Face', KycDetectedFace.initial()),
+                      _buildSimButton(
+                        'Smiling',
+                        _createMockFace(isSmiling: true),
+                      ),
+                      _buildSimButton(
+                        'Turn Left',
+                        _createMockFace(turnedLeft: true),
+                      ),
+                      _buildSimButton(
+                        'Turn Right',
+                        _createMockFace(turnedRight: true),
+                      ),
+                      _buildSimButton(
+                        'Blinking',
+                        _createMockFace(isBlinking: true),
+                      ),
+                      _buildSimButton(
+                        'Good Face',
+                        _createMockFace(isWellPositioned: true),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const Text('Detected Attributes:'),
+                  const SizedBox(height: 8),
+                  _buildAttributeRow('Face Found', _simulatedFace.faceFound),
+                  _buildAttributeRow(
+                    'Well Positioned',
+                    _simulatedFace.faceIsWellPositioned,
+                  ),
+                  _buildAttributeRow('Smiling', _simulatedFace.isSmiling),
+                  _buildAttributeRow('Turned Left', _simulatedFace.turnedLeft),
+                  _buildAttributeRow(
+                    'Turned Right',
+                    _simulatedFace.turnedRight,
+                  ),
+                  _buildAttributeRow('Blinking', _simulatedFace.isBlinking),
+                  _buildAttributeRow('Mouth Open', _simulatedFace.isMouthOpen),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Simulation State
+  KycDetectedFace _simulatedFace = KycDetectedFace.initial();
+
+  KycDetectedFace _createMockFace({
+    bool isSmiling = false,
+    bool turnedLeft = false,
+    bool turnedRight = false,
+    bool isBlinking = false,
+    bool isWellPositioned = false,
+  }) {
+    // We can't easily instantiate a real 'Face' object here without ml_kit dependency directly
+    // but KycDetectedFace takes a Face? which can be null for mock visualization
+    // IF we trust the flags.
+    // However, KycDetectedFace.initial() sets face=null.
+    // Our service sets these boolean flags based on the Face.
+    // For simulation, we just want to create a KycDetectedFace with specific flags.
+    // But KycDetectedFace constructor requires all fields.
+    return KycDetectedFace(
+      face: null, // Mock doesn't have a real Face object
+      faceIsWellPositioned: isWellPositioned,
+      isSmiling: isSmiling,
+      isFrowning: false,
+      turnedLeft: turnedLeft,
+      turnedRight: turnedRight,
+      lookingAway: false,
+      isBlinking: isBlinking,
+      isMouthOpen: false,
+      isNodding: false,
+      isFaceCloseEnough: true,
+    );
+  }
+
+  Widget _buildSimButton(String label, KycDetectedFace face) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () => setState(() => _simulatedFace = face),
+      backgroundColor: _simulatedFace == face
+          ? Theme.of(context).colorScheme.primaryContainer
+          : null,
+    );
+  }
+
+  Widget _buildAttributeRow(String label, bool value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.check_circle : Icons.cancel,
+            color: value ? Colors.green : Colors.grey,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: value
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              fontWeight: value ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

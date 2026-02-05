@@ -1,6 +1,6 @@
 part of '../../roqqu_kyc.dart';
 
-class KycDetectedFace extends Equatable {
+class KycDetectedFace {
   const KycDetectedFace({
     required this.face,
     required this.faceIsWellPositioned,
@@ -28,7 +28,6 @@ class KycDetectedFace extends Equatable {
         isNodding: false,
         isFaceCloseEnough: false,
       );
-
   final Face? face;
   final bool faceIsWellPositioned;
   final bool isSmiling;
@@ -40,18 +39,6 @@ class KycDetectedFace extends Equatable {
   final bool isMouthOpen;
   final bool isNodding;
   final bool isFaceCloseEnough;
-
-  bool get faceFound {
-    return face != null && (faceIsWellPositioned || isFrowning || isSmiling);
-  }
-
-  bool get isValidForSelfie {
-    return faceFound &&
-        !lookingAway &&
-        !isBlinking &&
-        isFaceCloseEnough &&
-        faceIsWellPositioned;
-  }
 
   KycDetectedFace copyWith({
     Face? face,
@@ -79,19 +66,10 @@ class KycDetectedFace extends Equatable {
         isNodding: isNodding ?? this.isNodding,
         isFaceCloseEnough: isFaceCloseEnough ?? this.isFaceCloseEnough,
       );
+}
 
-  @override
-  List<Object?> get props => [
-        face?.boundingBox,
-        faceIsWellPositioned,
-        isSmiling,
-        isFrowning,
-        turnedLeft,
-        turnedRight,
-        lookingAway,
-        isBlinking,
-        isMouthOpen,
-        isNodding,
-        isFaceCloseEnough,
-      ];
+extension KycDetectedFaceExtension on KycDetectedFace {
+  bool get faceFound {
+    return faceIsWellPositioned || isFrowning || isSmiling;
+  }
 }

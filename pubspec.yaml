@@ -1,6 +1,7 @@
 name: roqqu_kyc
 description: "A headless, reusable KYC SDK for Flutter applications with face detection, liveness checking, and anti-spoofing capabilities."
 version: 0.0.1
+publish_to: none
 homepage: https://roqqu.com
 
 environment:
@@ -16,11 +17,7 @@ dependencies:
   image: ^4.3.0
   
   # ML Kit for face detection
-  google_mlkit_face_detection:
-    git:
-      url: https://github.com/neuralpioneer/google_ml_kit_flutter.git
-      ref: develop
-      path: packages/google_mlkit_face_detection/
+
   
   # TensorFlow Lite for anti-spoofing
   tflite_flutter: ^0.11.0
@@ -35,6 +32,7 @@ dependencies:
   # Utils
   equatable: ^2.0.7
   meta: ^1.15.0
+  google_mlkit_face_detection: ^0.13.2
 
 dev_dependencies:
   flutter_test:
