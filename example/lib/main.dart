@@ -45,17 +45,33 @@ class _KycDemoScreenState extends State<KycDemoScreen> {
     kycTestEmails: [],
   );
 
-  // Current stage simulation
-  KycFaceRecognitionStage _currentStage = KycFaceRecognitionStage.initial;
+  // Liveness Check Service
+  final LivenessCheckService _livenessCheckService = LivenessCheckService();
+
+  // Current stage simulation (driven by manager)
+  KycFaceRecognitionStage get _currentStage =>
+      _livenessCheckService.currentStage;
+
+  @override
+  void initState() {
+    super.initState();
+    _livenessCheckService.start();
+  }
 
   // Selected document type
   KycAllowedId _selectedDoc = KycAllowedId.internationalPassport;
 
-  void _nextStage() {
-    final next = KycFaceRecognitionStage.getNextStep(_currentStage.step);
-    if (next != null) {
-      setState(() => _currentStage = next);
-    }
+  void _processFrame() {
+    setState(() {
+      _livenessCheckService.process(_simulatedFace, false);
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _livenessCheckService.start();
+      _simulatedFace = KycDetectedFace.initial();
+    });
   }
 
   @override
@@ -118,63 +134,83 @@ class _KycDemoScreenState extends State<KycDemoScreen> {
             const SizedBox(height: 24),
 
             // Face Recognition Stage
-            _buildSection(
-              'Face Recognition Stage',
-              child: Column(
+            // Face Recognition Stage - Live View Simulation
+            Container(
+              height: 300,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          _currentStage.label.toUpperCase().replaceAll(
-                            '_',
-                            ' ',
-                          ),
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: _currentStage.progress,
-                          backgroundColor: Colors.white24,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Step ${_currentStage.step} of ${KycFaceRecognitionStage.values.length - 1}',
-                        ),
-                      ],
+                  // Mock Camera Feed/Placeholder
+                  Center(
+                    child: Icon(
+                      Icons.face,
+                      size: 100,
+                      color: Colors.white.withOpacity(0.3),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(
-                              () => _currentStage =
-                                  KycFaceRecognitionStage.initial,
-                            );
-                          },
-                          child: const Text('Reset'),
+
+                  // Instruction Overlay
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.transparent, Colors.black87],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.vertical(
+                          bottom: Radius.circular(16),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed:
-                              _currentStage != KycFaceRecognitionStage.done
-                              ? _nextStage
-                              : null,
-                          child: const Text('Next Stage'),
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _currentStage.label.toUpperCase().replaceAll(
+                              '_',
+                              ' ',
+                            ),
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Step ${_currentStage.step} of ${KycFaceRecognitionStage.values.length - 1}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 16),
+                          LinearProgressIndicator(
+                            value: _currentStage.progress,
+                            backgroundColor: Colors.white24,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF6C5CE7),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+
+                  // Reset Button (Top Right)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: IconButton.filledTonal(
+                      onPressed: _reset,
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Reset Flow',
+                    ),
                   ),
                 ],
               ),
@@ -312,7 +348,10 @@ class _KycDemoScreenState extends State<KycDemoScreen> {
   Widget _buildSimButton(String label, KycDetectedFace face) {
     return ActionChip(
       label: Text(label),
-      onPressed: () => setState(() => _simulatedFace = face),
+      onPressed: () {
+        setState(() => _simulatedFace = face);
+        _processFrame();
+      },
       backgroundColor: _simulatedFace == face
           ? Theme.of(context).colorScheme.primaryContainer
           : null,

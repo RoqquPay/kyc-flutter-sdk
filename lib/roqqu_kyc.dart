@@ -17,3 +17,4 @@ part 'src/models/required_metadata.dart';
 part 'src/models/spoof_result.dart';
 part 'src/models/tier_level.dart';
 part 'src/services/face_detection_service.dart';
+part 'src/services/liveness_check_service.dart';
