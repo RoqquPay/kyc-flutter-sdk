@@ -26,21 +26,9 @@ class RoqquKycSdk {
     _apiClient = apiClient;
   }
 
-  /// Start the verification flow
-  void startVerification(
-    BuildContext context, {
-    required KycDelegate delegate,
-    KycSession? session,
-  }) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => KycVerificationFlow(
-          config: _config,
-          delegate: delegate,
-          apiClient: _apiClient,
-          session: session,
-        ),
-      ),
-    );
-  }
+  /// Current Configuration
+  KycConfig get config => _config;
+
+  /// Current API Client
+  KycApiClient? get apiClient => _apiClient;
 }

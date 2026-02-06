@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:roqqu_kyc/roqqu_kyc.dart';
 import 'mock_api_client.dart';
+import 'kyc_flow.dart';
 
 void main() {
   // Initialize SDK with Mock Client for Demo
@@ -52,7 +53,15 @@ class IntroPage extends StatefulWidget {
 
 class _IntroPageState extends State<IntroPage> implements KycDelegate {
   void _startVerification() {
-    RoqquKycSdk().startVerification(context, delegate: this);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KycVerificationFlow(
+          config: RoqquKycSdk().config,
+          apiClient: RoqquKycSdk().apiClient,
+          delegate: this,
+        ),
+      ),
+    );
   }
 
   // --- Delegate Callbacks ---

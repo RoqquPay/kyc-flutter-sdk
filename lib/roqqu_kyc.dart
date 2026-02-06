@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 part 'src/core/config.dart';
@@ -23,4 +22,3 @@ part 'src/models/session.dart';
 part 'src/api/kyc_api_client.dart';
 part 'src/core/kyc_delegate.dart';
 part 'src/core/roqqu_kyc_sdk.dart';
-part 'src/ui/kyc_verification_flow.dart';

@@ -1,4 +1,5 @@
-part of '../../roqqu_kyc.dart';
+import 'package:flutter/material.dart';
+import 'package:roqqu_kyc/roqqu_kyc.dart';
 
 class KycVerificationFlow extends StatefulWidget {
   final KycConfig config;
@@ -80,7 +81,9 @@ class _KycVerificationFlowState extends State<KycVerificationFlow> {
               Text(_error!),
               const SizedBox(height: 24),
               FilledButton(
-                  onPressed: _createSession, child: const Text('Retry')),
+                onPressed: _createSession,
+                child: const Text('Retry'),
+              ),
               TextButton(
                 onPressed: () => widget.delegate.onError(_error!),
                 child: const Text('Close'),
@@ -92,9 +95,7 @@ class _KycVerificationFlowState extends State<KycVerificationFlow> {
     }
 
     if (_isLoading || _session == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return _SdkLivenessPage(
@@ -159,8 +160,11 @@ class _SdkLivenessPageState extends State<_SdkLivenessPage> {
         children: [
           // Camera Placeholder (Real camera integration would go here)
           Center(
-            child: Icon(Icons.face,
-                size: 100, color: Colors.white.withOpacity(0.1)),
+            child: Icon(
+              Icons.face,
+              size: 100,
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
           ),
 
           // Instructions (Top)
@@ -173,11 +177,14 @@ class _SdkLivenessPageState extends State<_SdkLivenessPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _service.currentStage.label
-                          .toUpperCase()
-                          .replaceAll('_', ' '),
+                      _service.currentStage.label.toUpperCase().replaceAll(
+                        '_',
+                        ' ',
+                      ),
                       style: theme.textTheme.headlineSmall?.copyWith(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -204,14 +211,22 @@ class _SdkLivenessPageState extends State<_SdkLivenessPage> {
                   runSpacing: 8,
                   children: [
                     _btn('Reset', KycDetectedFace.initial()),
-                    _btn('Smile',
-                        KycDetectedFace.initial().copyWith(isSmiling: true)),
-                    _btn('Left',
-                        KycDetectedFace.initial().copyWith(turnedLeft: true)),
-                    _btn('Right',
-                        KycDetectedFace.initial().copyWith(turnedRight: true)),
-                    _btn('Open Mouth',
-                        KycDetectedFace.initial().copyWith(isMouthOpen: true)),
+                    _btn(
+                      'Smile',
+                      KycDetectedFace.initial().copyWith(isSmiling: true),
+                    ),
+                    _btn(
+                      'Left',
+                      KycDetectedFace.initial().copyWith(turnedLeft: true),
+                    ),
+                    _btn(
+                      'Right',
+                      KycDetectedFace.initial().copyWith(turnedRight: true),
+                    ),
+                    _btn(
+                      'Open Mouth',
+                      KycDetectedFace.initial().copyWith(isMouthOpen: true),
+                    ),
                   ],
                 ),
               ),
