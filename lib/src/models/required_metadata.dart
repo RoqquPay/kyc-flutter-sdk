@@ -1,4 +1,6 @@
-part of '../../roqqu_kyc.dart';
+import 'dart:convert';
+
+import 'package:equatable/equatable.dart';
 
 class KycRequiredMetaData extends Equatable {
   const KycRequiredMetaData({

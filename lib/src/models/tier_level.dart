@@ -1,4 +1,4 @@
-part of '../../roqqu_kyc.dart';
+import 'enums.dart';
 
 class KycTierLevel {
   const KycTierLevel({

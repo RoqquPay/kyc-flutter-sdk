@@ -1,5 +1,3 @@
-part of '../../roqqu_kyc.dart';
-
 enum KycFaceRecognitionStage {
   initial(0),
   detectFace(1),

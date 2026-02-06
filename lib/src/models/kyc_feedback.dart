@@ -1,5 +1,3 @@
-part of '../../roqqu_kyc.dart';
-
 enum KycFeedback {
   noFaceDetected,
   faceTooFar,

@@ -1,4 +1,4 @@
-part of '../../roqqu_kyc.dart';
+import 'package:equatable/equatable.dart';
 
 class KycSession extends Equatable {
   const KycSession({

@@ -1,4 +1,6 @@
-part of '../../roqqu_kyc.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+
+import 'kyc_feedback.dart';
 
 class KycDetectedFace {
   const KycDetectedFace({

@@ -16,7 +16,7 @@ void main() {
     kycTestEmails: [],
   );
 
-  RoqquKycSdk().initialize(config: config, apiClient: MockKycApiClient());
+  RoqquKycSdk.initialize(config: config, apiClient: MockKycApiClient());
 
   runApp(const KycExampleApp());
 }
@@ -56,8 +56,8 @@ class _IntroPageState extends State<IntroPage> implements KycDelegate {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => KycVerificationFlow(
-          config: RoqquKycSdk().config,
-          apiClient: RoqquKycSdk().apiClient,
+          config: RoqquKycSdk.instance.config,
+          apiClient: RoqquKycSdk.instance.apiClient,
           delegate: this,
         ),
       ),

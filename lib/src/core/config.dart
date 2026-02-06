@@ -1,5 +1,3 @@
-part of '../../roqqu_kyc.dart';
-
 class KycConfig {
   KycConfig({
     required this.clearnessThreshold,

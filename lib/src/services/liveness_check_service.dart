@@ -1,4 +1,5 @@
-part of '../../roqqu_kyc.dart';
+import '../models/detected_face.dart';
+import '../models/enums.dart';
 
 class LivenessCheckService {
   LivenessCheckService({

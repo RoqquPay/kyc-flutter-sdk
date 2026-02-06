@@ -1,4 +1,4 @@
-part of '../../roqqu_kyc.dart';
+import 'package:equatable/equatable.dart';
 
 class KycDoc extends Equatable {
   const KycDoc({required this.title, required this.key});

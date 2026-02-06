@@ -1,4 +1,6 @@
-part of '../../roqqu_kyc.dart';
+import 'dart:typed_data';
+
+import 'package:equatable/equatable.dart';
 
 class KycSpoofResult extends Equatable {
   const KycSpoofResult({

@@ -1,34 +1,25 @@
-part of '../../roqqu_kyc.dart';
+import '../api/kyc_api_client.dart';
+import 'config.dart';
 
 class RoqquKycSdk {
-  static final RoqquKycSdk _instance = RoqquKycSdk._internal();
-  factory RoqquKycSdk() => _instance;
-  RoqquKycSdk._internal();
+  RoqquKycSdk({required this.config, this.apiClient});
 
-  KycConfig _config = KycConfig(
-    clearnessThreshold: 750,
-    clearnessLowerThreshold: 450,
-    livenessThreshold: 0.2,
-    enableAntispoofing: true,
-    maxFrameCount: 3,
-    framePassPercentage: 0.6,
-    debugMode: false,
-    kycTestEmails: [],
-  );
-  KycApiClient? _apiClient; // Optional injected client
+  KycConfig config;
+  KycApiClient? apiClient;
 
-  /// Initialize the SDK with configuration
-  void initialize({
+  /// Optional convenience singleton for apps that only need one instance.
+  static RoqquKycSdk? _instance;
+
+  static RoqquKycSdk get instance {
+    assert(_instance != null, 'RoqquKycSdk.initialize() must be called first.');
+    return _instance!;
+  }
+
+  static void initialize({
     required KycConfig config,
     KycApiClient? apiClient,
   }) {
-    _config = config;
-    _apiClient = apiClient;
+    _instance = RoqquKycSdk(config: config, apiClient: apiClient);
   }
 
-  /// Current Configuration
-  KycConfig get config => _config;
-
-  /// Current API Client
-  KycApiClient? get apiClient => _apiClient;
 }

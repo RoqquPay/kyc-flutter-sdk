@@ -1,4 +1,4 @@
-part of '../../roqqu_kyc.dart';
+import '../models/session.dart';
 
 /// Delegate for handling KYC flow callbacks
 abstract class KycDelegate {
