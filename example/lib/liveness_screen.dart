@@ -146,6 +146,9 @@ class _LivenessScreenState extends State<LivenessScreen> {
       return _buildCompletionView(_state.capturedImage!);
     }
 
+    final ovalWidth = MediaQuery.of(context).size.width * 0.8;
+    final ovalHeight = MediaQuery.of(context).size.height * 0.45;
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -153,30 +156,29 @@ class _LivenessScreenState extends State<LivenessScreen> {
         Container(color: Colors.black),
 
         // Oval-clipped camera preview
-        ClipOval(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.height * 0.45,
-            child: OverflowBox(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: controller.value.previewSize?.height ?? 300,
-                  height: controller.value.previewSize?.width ?? 400,
-                  child: CameraPreview(controller),
-                ),
+        SizedBox(
+          width: ovalWidth,
+          height: ovalHeight,
+          child: ClipOval(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: controller.value.previewSize?.height ?? 300,
+                height: controller.value.previewSize?.width ?? 400,
+                child: CameraPreview(controller),
               ),
             ),
           ),
         ),
 
-        // Oval border indicating progress
+        // Oval border — use elliptical radius to match ClipOval exactly
         Container(
-          width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.height * 0.45,
+          width: ovalWidth,
+          height: ovalHeight,
           decoration: BoxDecoration(
-            shape: BoxShape.rectangle,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.all(
+              Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
+            ),
             border: Border.all(
               color: _state.isTimedOut
                   ? Colors.red

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
@@ -62,7 +63,19 @@ class KycFaceDetectionService {
       return currArea > nextArea ? curr : next;
     });
 
-    return _analyzeFace(face, config, inputImage.metadata?.size, rotation);
+    // On Android, ML Kit returns face coordinates in the rotated coordinate
+    // space, but imageSize is the raw sensor size. Swap dimensions when the
+    // rotation is 90° or 270° so positioning checks align correctly.
+    // iOS handles this internally — no swap needed.
+    Size? effectiveSize = inputImage.metadata?.size;
+    if (Platform.isAndroid &&
+        effectiveSize != null &&
+        (rotation == InputImageRotation.rotation90deg ||
+            rotation == InputImageRotation.rotation270deg)) {
+      effectiveSize = Size(effectiveSize.height, effectiveSize.width);
+    }
+
+    return _analyzeFace(face, config, effectiveSize, rotation);
   }
 
   KycDetectedFace _analyzeFace(
