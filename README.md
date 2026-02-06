@@ -199,6 +199,10 @@ KycConfig(
   // Higher = fewer false positives, user must hold gesture longer
   gestureConfirmations: 2,
 
+  // Which step to capture the selfie image on (default: null = detectFace)
+  // Set to e.g. KycFaceRecognitionStage.smile for a smiling selfie
+  captureStep: KycFaceRecognitionStage.smile,
+
   // --- Anti-spoofing tuning (only relevant if enableAntispoofing is true) ---
 
   // Minimum image clarity score for spoof analysis (default: 750)

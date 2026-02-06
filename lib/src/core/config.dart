@@ -19,6 +19,7 @@ class KycConfig {
     this.stepTimeout = const Duration(seconds: 20),
     this.detectFaceTimeout = const Duration(seconds: 60),
     this.gestureConfirmations = 2,
+    this.captureStep,
     this.customModelPath,
   });
 
@@ -138,6 +139,19 @@ class KycConfig {
   /// Defaults to `2`.
   final int gestureConfirmations;
 
+  /// Which challenge step to capture the selfie image on.
+  ///
+  /// By default (`null`), the selfie is captured when the `detectFace` step
+  /// passes. Set this to a gesture stage (e.g., [KycFaceRecognitionStage.smile])
+  /// to capture the selfie at that moment instead — for example, a smiling
+  /// photo makes a better impression.
+  ///
+  /// The step must be present in [challenges] or be `detectFace`, otherwise
+  /// no selfie will be captured.
+  ///
+  /// Defaults to `null` (capture during `detectFace`).
+  final KycFaceRecognitionStage? captureStep;
+
   /// Path to a custom TFLite anti-spoofing model file.
   ///
   /// When `null`, the engine uses the bundled `anti_spoof.tflite` model
@@ -159,6 +173,7 @@ class KycConfig {
     Duration? stepTimeout,
     Duration? detectFaceTimeout,
     int? gestureConfirmations,
+    KycFaceRecognitionStage? captureStep,
     String? customModelPath,
   }) {
     return KycConfig(
@@ -175,6 +190,7 @@ class KycConfig {
       stepTimeout: stepTimeout ?? this.stepTimeout,
       detectFaceTimeout: detectFaceTimeout ?? this.detectFaceTimeout,
       gestureConfirmations: gestureConfirmations ?? this.gestureConfirmations,
+      captureStep: captureStep ?? this.captureStep,
       customModelPath: customModelPath ?? this.customModelPath,
     );
   }

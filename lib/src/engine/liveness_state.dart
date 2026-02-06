@@ -57,8 +57,8 @@ class KycLivenessState {
   /// Whether all liveness challenges have been completed successfully.
   final bool isComplete;
 
-  /// The captured selfie image file, available once face detection passes.
-  /// This is the image that should be uploaded for face matching.
+  /// The captured selfie image file, taken when the configured [KycConfig.captureStep]
+  /// completes (defaults to `detectFace`, but can be set to e.g. `smile`).
   final File? capturedImage;
 
   /// Whether the camera is initialized and streaming frames.

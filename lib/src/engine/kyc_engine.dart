@@ -78,6 +78,7 @@ class KycEngine {
   Timer? _scanTimer;
   bool _isProcessing = false;
   bool _ownsCamera = false;
+  bool _detectFacePassed = false;
   File? _capturedImage;
 
   CameraImage? _latestFrame;
@@ -148,6 +149,7 @@ class KycEngine {
   /// the challenge sequence. Useful for retry flows.
   Future<void> reset() async {
     _capturedImage = null;
+    _detectFacePassed = false;
     _antiSpoofingService.resetState();
 
     if (config.enableAntispoofing) {
@@ -243,9 +245,17 @@ class KycEngine {
         isSpoof: isSpoof,
       );
 
-      // 5. Capture selfie when detectFace passes
       if (result.stepCompleted &&
-          currentStage == KycFaceRecognitionStage.detectFace &&
+          currentStage == KycFaceRecognitionStage.detectFace) {
+        _detectFacePassed = true;
+      }
+
+      // 5. Capture selfie when the configured step passes
+      final captureAt =
+          config.captureStep ?? KycFaceRecognitionStage.detectFace;
+      if (result.stepCompleted &&
+          currentStage == captureAt &&
+          _detectFacePassed &&
           _capturedImage == null &&
           detectedFace.face != null) {
         try {
