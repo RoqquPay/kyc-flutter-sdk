@@ -2,7 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:roqqu_kyc/roqqu_kyc.dart';
+import 'package:kyc_engine/kyc_engine.dart';
 
 class MockFaceDetector implements FaceDetector {
   final List<Face> _facesToReturn;
@@ -29,16 +29,7 @@ void main() {
     late KycConfig config;
 
     setUp(() {
-      config = KycConfig(
-        clearnessThreshold: 750,
-        clearnessLowerThreshold: 450,
-        livenessThreshold: 0.2,
-        enableAntispoofing: true,
-        maxFrameCount: 3,
-        framePassPercentage: 0.6,
-        debugMode: false,
-        kycTestEmails: [],
-      );
+      config = KycConfig(enableAntispoofing: true);
     });
 
     test('processImage returns initial state when no faces found', () async {
@@ -53,7 +44,6 @@ void main() {
     });
 
     test('processImage analyzes attributes correctly', () async {
-      // Provide essential landmarks so isFaceInFrame guards pass
       final landmarks = <FaceLandmarkType, FaceLandmark>{
         FaceLandmarkType.noseBase: FaceLandmark(
           type: FaceLandmarkType.noseBase,
@@ -77,10 +67,10 @@ void main() {
         boundingBox: const Rect.fromLTWH(0, 0, 200, 200),
         landmarks: landmarks,
         contours: {},
-        smilingProbability: 0.9, // Smiling
-        leftEyeOpenProbability: 0.1, // Closed
-        rightEyeOpenProbability: 0.1, // Closed -> Blinking
-        headEulerAngleY: 20.0, // Turn Left (if > threshold 12)
+        smilingProbability: 0.9,
+        leftEyeOpenProbability: 0.1,
+        rightEyeOpenProbability: 0.1,
+        headEulerAngleY: 20.0,
         headEulerAngleX: 0,
         headEulerAngleZ: 0,
       );
@@ -89,7 +79,6 @@ void main() {
       service = KycFaceDetectionService(detector: detector);
 
       final inputImage = InputImage.fromFilePath('test_path');
-
       final result = await service.processImage(inputImage, config);
 
       expect(result.faceFound, true);
