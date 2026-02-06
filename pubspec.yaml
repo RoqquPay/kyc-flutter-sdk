@@ -39,4 +39,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-
+flutter:
+  assets:
+    - assets/ml_models/anti_spoof.tflite
