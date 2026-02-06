@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -52,9 +53,29 @@ void main() {
     });
 
     test('processImage analyzes attributes correctly', () async {
+      // Provide essential landmarks so isFaceInFrame guards pass
+      final landmarks = <FaceLandmarkType, FaceLandmark>{
+        FaceLandmarkType.noseBase: FaceLandmark(
+          type: FaceLandmarkType.noseBase,
+          position: const Point<int>(100, 100),
+        ),
+        FaceLandmarkType.bottomMouth: FaceLandmark(
+          type: FaceLandmarkType.bottomMouth,
+          position: const Point<int>(100, 150),
+        ),
+        FaceLandmarkType.leftEye: FaceLandmark(
+          type: FaceLandmarkType.leftEye,
+          position: const Point<int>(80, 80),
+        ),
+        FaceLandmarkType.rightEye: FaceLandmark(
+          type: FaceLandmarkType.rightEye,
+          position: const Point<int>(120, 80),
+        ),
+      };
+
       final face = Face(
         boundingBox: const Rect.fromLTWH(0, 0, 200, 200),
-        landmarks: {},
+        landmarks: landmarks,
         contours: {},
         smilingProbability: 0.9, // Smiling
         leftEyeOpenProbability: 0.1, // Closed
@@ -69,10 +90,7 @@ void main() {
 
       final inputImage = InputImage.fromFilePath('test_path');
 
-      // Override config to ensure 20 > threshold
-      final testConfig = config;
-
-      final result = await service.processImage(inputImage, testConfig);
+      final result = await service.processImage(inputImage, config);
 
       expect(result.faceFound, true);
       expect(result.isSmiling, true);

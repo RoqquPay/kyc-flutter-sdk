@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roqqu_kyc/roqqu_kyc.dart';
 
@@ -23,13 +22,7 @@ class MockKycDelegate implements KycDelegate {
 
 void main() {
   group('RoqquKycSdk', () {
-    test('Singleton instance works', () {
-      final sdk1 = RoqquKycSdk();
-      final sdk2 = RoqquKycSdk();
-      expect(sdk1, same(sdk2));
-    });
-
-    test('initialize sets config', () {
+    test('can create instance with config', () {
       final config = KycConfig(
         clearnessThreshold: 750,
         clearnessLowerThreshold: 450,
@@ -40,11 +33,64 @@ void main() {
         debugMode: true,
         kycTestEmails: [],
       );
-      RoqquKycSdk().initialize(config: config);
-      // We can't verify protected members easily without visibleForTesting,
-      // but we test initialization doesn't throw.
+
+      final sdk = RoqquKycSdk(config: config);
+      expect(sdk.config.clearnessThreshold, 750);
+      expect(sdk.config.debugMode, true);
     });
 
-    // UI tests would go here with widget testing, verifying navigation.
+    test('static initialize sets instance', () {
+      final config = KycConfig(
+        clearnessThreshold: 800,
+        clearnessLowerThreshold: 450,
+        livenessThreshold: 0.3,
+        enableAntispoofing: false,
+        maxFrameCount: 5,
+        framePassPercentage: 0.7,
+        debugMode: false,
+        kycTestEmails: [],
+      );
+
+      RoqquKycSdk.initialize(config: config);
+
+      expect(RoqquKycSdk.instance.config.clearnessThreshold, 800);
+      expect(RoqquKycSdk.instance.config.enableAntispoofing, false);
+      expect(RoqquKycSdk.instance.config.maxFrameCount, 5);
+    });
+
+    test('instance accepts optional apiClient', () {
+      final config = KycConfig(
+        clearnessThreshold: 750,
+        clearnessLowerThreshold: 450,
+        livenessThreshold: 0.2,
+        enableAntispoofing: true,
+        maxFrameCount: 3,
+        framePassPercentage: 0.6,
+        debugMode: false,
+        kycTestEmails: [],
+      );
+
+      final sdk = RoqquKycSdk(config: config);
+      expect(sdk.apiClient, isNull);
+    });
+
+    test('config can be updated after creation', () {
+      final config = KycConfig(
+        clearnessThreshold: 750,
+        clearnessLowerThreshold: 450,
+        livenessThreshold: 0.2,
+        enableAntispoofing: true,
+        maxFrameCount: 3,
+        framePassPercentage: 0.6,
+        debugMode: false,
+        kycTestEmails: [],
+      );
+
+      final sdk = RoqquKycSdk(config: config);
+      expect(sdk.config.debugMode, false);
+
+      sdk.config = config.copyWith(debugMode: true);
+      expect(sdk.config.debugMode, true);
+    });
   });
 }
