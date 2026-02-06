@@ -69,6 +69,27 @@ extension KycFaceRecognitionStageExtension on KycFaceRecognitionStage {
   }
 
   bool get isStayStill => this == KycFaceRecognitionStage.stayStill;
+
+  String get label {
+    switch (this) {
+      case KycFaceRecognitionStage.initial:
+        return 'face_within';
+      case KycFaceRecognitionStage.detectFace:
+        return 'detecting_face';
+      case KycFaceRecognitionStage.tiltLeft:
+        return 'move_face_left';
+      case KycFaceRecognitionStage.tiltRight:
+        return 'move_face_right';
+      case KycFaceRecognitionStage.smile:
+        return 'now_smile';
+      case KycFaceRecognitionStage.mouthOpen:
+        return 'open_mouth';
+      case KycFaceRecognitionStage.stayStill:
+        return 'stay_still';
+      case KycFaceRecognitionStage.done:
+        return 'done';
+    }
+  }
 }
 
 enum KycVerStatus {
