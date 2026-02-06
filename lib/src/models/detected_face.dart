@@ -2,6 +2,11 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import 'kyc_feedback.dart';
 
+/// Snapshot of face analysis results for a single camera frame.
+///
+/// Contains the raw ML Kit [Face] object plus boolean flags for each
+/// detectable gesture and positioning check. Used by [LivenessSession]
+/// to determine whether the current challenge step is satisfied.
 class KycDetectedFace {
   const KycDetectedFace({
     required this.face,
@@ -75,7 +80,9 @@ class KycDetectedFace {
       );
 }
 
+/// Convenience getters for [KycDetectedFace].
 extension KycDetectedFaceExtension on KycDetectedFace {
+  /// Whether any face was found — either well-positioned, frowning, or smiling.
   bool get faceFound {
     return faceIsWellPositioned || isFrowning || isSmiling;
   }

@@ -2,6 +2,12 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 
+/// Result of anti-spoofing inference on a single camera frame.
+///
+/// Contains the spoof/genuine classification along with quality metrics
+/// (clearness and liveness scores) and optional face images. Use the
+/// named constructors [spoofDetected], [genuine], and [skipped] for
+/// common cases.
 class KycSpoofResult extends Equatable {
   const KycSpoofResult({
     required this.isSpoof,

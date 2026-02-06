@@ -7,6 +7,18 @@ import '../core/config.dart';
 import '../models/detected_face.dart';
 import '../models/kyc_feedback.dart';
 
+/// Detects and analyzes faces in camera frames using Google ML Kit.
+///
+/// Wraps ML Kit's [FaceDetector] and produces [KycDetectedFace] results
+/// with gesture flags (smiling, mouth open, head turn) and positioning
+/// feedback. Can be used standalone (Layer 1) or as part of [KycEngine].
+///
+/// ```dart
+/// final detector = KycFaceDetectionService();
+/// final result = await detector.processImage(inputImage, config);
+/// print(result.isSmiling); // true if user is smiling
+/// await detector.dispose();
+/// ```
 class KycFaceDetectionService {
   KycFaceDetectionService({FaceDetector? detector})
       : _detector = detector ??
@@ -37,24 +49,20 @@ class KycFaceDetectionService {
     KycConfig config, {
     InputImageRotation? rotation,
   }) async {
-    try {
-      final faces = await _detector.processImage(inputImage);
+    final faces = await _detector.processImage(inputImage);
 
-      if (faces.isEmpty) {
-        return KycDetectedFace.initial();
-      }
-
-      // Select the most prominent face (largest bounding box)
-      final face = faces.reduce((curr, next) {
-        final currArea = curr.boundingBox.width * curr.boundingBox.height;
-        final nextArea = next.boundingBox.width * next.boundingBox.height;
-        return currArea > nextArea ? curr : next;
-      });
-
-      return _analyzeFace(face, config, inputImage.metadata?.size, rotation);
-    } catch (e) {
+    if (faces.isEmpty) {
       return KycDetectedFace.initial();
     }
+
+    // Select the most prominent face (largest bounding box)
+    final face = faces.reduce((curr, next) {
+      final currArea = curr.boundingBox.width * curr.boundingBox.height;
+      final nextArea = next.boundingBox.width * next.boundingBox.height;
+      return currArea > nextArea ? curr : next;
+    });
+
+    return _analyzeFace(face, config, inputImage.metadata?.size, rotation);
   }
 
   KycDetectedFace _analyzeFace(
@@ -181,7 +189,7 @@ class KycFaceDetectionService {
     );
   }
 
-  /// Check if face occupies enough of the frame (matching roqqu thresholds).
+  /// Check if the face occupies enough of the frame to be considered close.
   bool _isFaceCloseEnough(Face face, Size imageSize) {
     final box = face.boundingBox;
     final x = box.left.toInt().clamp(0, imageSize.width.toInt() - 1);

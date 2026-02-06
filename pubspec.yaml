@@ -1,6 +1,7 @@
 name: kyc_engine
 description: "A headless, camera-based face liveness verification engine for Flutter. Provides face detection, anti-spoofing, and configurable liveness challenges."
 version: 0.1.0
+repository: https://github.com/RoqquPay/kyc-flutter-sdk
 
 environment:
   sdk: ^3.0.0

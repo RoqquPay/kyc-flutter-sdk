@@ -26,9 +26,19 @@ migrate_working_dir/
 /pubspec.lock
 **/doc/api/
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.metadata
 /build/
 /coverage/
+
+# Example app build artifacts
+**/example/build/
+**/example/.dart_tool/
+**/example/.flutter-plugins
+**/example/.flutter-plugins-dependencies
+**/example/.metadata
+**/example/pubspec.lock
 
 **/example/ios/**/dgph
 **/example/ios/*.mode1v3

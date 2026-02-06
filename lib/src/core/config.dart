@@ -1,99 +1,188 @@
+import '../models/enums.dart';
+
 class KycConfig {
   KycConfig({
-    required this.clearnessThreshold,
-    required this.clearnessLowerThreshold,
-    required this.livenessThreshold,
-    required this.enableAntispoofing,
-    required this.maxFrameCount,
-    required this.framePassPercentage,
-    required this.debugMode,
-    required this.kycTestEmails,
-    this.userEmail,
+    this.challenges = const [
+      KycFaceRecognitionStage.tiltLeft,
+      KycFaceRecognitionStage.tiltRight,
+      KycFaceRecognitionStage.smile,
+      KycFaceRecognitionStage.mouthOpen,
+    ],
+    this.shuffleChallenges = true,
+    this.enableAntispoofing = false,
+    this.clearnessThreshold = 750,
+    this.clearnessLowerThreshold = 450,
+    this.livenessThreshold = 0.2,
+    this.maxFrameCount = 3,
+    this.framePassPercentage = 0.6,
+    this.scanInterval = const Duration(milliseconds: 500),
+    this.stepTimeout = const Duration(seconds: 20),
+    this.detectFaceTimeout = const Duration(seconds: 60),
+    this.gestureConfirmations = 2,
+    this.customModelPath,
   });
 
-  factory KycConfig.fromJson(Map<String, dynamic> json) {
-    List<String> parseEmails(dynamic value) {
-      if (value == null) return [];
-      if (value is List) return value.map((e) => e.toString()).toList();
-      if (value is String) {
-        return value.split(',').map((e) => e.trim()).toList();
-      }
-      return [];
-    }
+  /// The gesture challenges to present during liveness verification.
+  ///
+  /// Controls which face gestures the user must perform. Each stage maps to a
+  /// specific action (tilt left, tilt right, smile, open mouth). The engine
+  /// will cycle through these in order (or shuffled, if [shuffleChallenges]
+  /// is true) after the initial face detection step.
+  ///
+  /// Defaults to all four gestures: tiltLeft, tiltRight, smile, mouthOpen.
+  final List<KycFaceRecognitionStage> challenges;
 
-    return KycConfig(
-      clearnessThreshold: (json['clearness_threshold'] as num?)?.toInt() ?? 750,
-      clearnessLowerThreshold:
-          (json['clearness_lower_threshold'] as num?)?.toInt() ?? 450,
-      livenessThreshold:
-          (json['liveness_threshold'] as num?)?.toDouble() ?? 0.2,
-      enableAntispoofing: json['enable_antispoofing'] as bool? ?? false,
-      maxFrameCount: (json['max_frame_count'] as num?)?.toInt() ?? 3,
-      framePassPercentage:
-          (json['frame_pass_percentage'] as num?)?.toDouble() ?? 0.6,
-      debugMode: json['debug_mode'] as bool? ?? false,
-      kycTestEmails: parseEmails(json['kyc_test_emails']),
-    );
-  }
+  /// Whether to randomize the order of [challenges] each session.
+  ///
+  /// Shuffling makes it harder for pre-recorded videos to pass liveness
+  /// checks, since the gesture order is unpredictable. The shuffle happens
+  /// once when the engine starts or resets.
+  ///
+  /// Defaults to `true`.
+  final bool shuffleChallenges;
 
-  final int clearnessThreshold;
-  final int clearnessLowerThreshold;
-  final double livenessThreshold;
+  /// Whether to run TFLite anti-spoofing inference during face detection.
+  ///
+  /// When enabled, the engine runs a lightweight neural network on each
+  /// frame during the `detectFace` step to estimate whether the face is
+  /// from a live person or a photo/screen replay. Results are available
+  /// in [KycLivenessState.spoofResult].
+  ///
+  /// Requires a bundled or custom TFLite model (see [customModelPath]).
+  /// Defaults to `false`.
   final bool enableAntispoofing;
-  final bool debugMode;
+
+  /// Minimum image clarity score to consider a frame "clear enough" for
+  /// anti-spoofing analysis.
+  ///
+  /// Higher values reject more blurry frames. The clearness score is
+  /// computed from Laplacian variance of the cropped face region.
+  /// Frames below this threshold are skipped for spoof evaluation.
+  ///
+  /// Defaults to `750`.
+  final int clearnessThreshold;
+
+  /// Lower bound for the clearness score.
+  ///
+  /// Frames with clarity below this value are considered too blurry to
+  /// process at all — they won't contribute to spoof frame counting.
+  /// Should be lower than [clearnessThreshold].
+  ///
+  /// Defaults to `450`.
+  final int clearnessLowerThreshold;
+
+  /// Minimum liveness confidence score (0.0 – 1.0) to classify a frame
+  /// as "not spoofed".
+  ///
+  /// The TFLite model outputs a liveness probability. Frames scoring above
+  /// this threshold count toward the [maxFrameCount] needed to pass.
+  /// Lower values are more lenient; higher values are stricter.
+  ///
+  /// Defaults to `0.2`.
+  final double livenessThreshold;
+
+  /// Number of non-spoof frames required to pass anti-spoofing verification.
+  ///
+  /// During the `detectFace` step, the engine accumulates frames that pass
+  /// both clearness and liveness checks. Once [maxFrameCount] qualifying
+  /// frames are collected (subject to [framePassPercentage]), face detection
+  /// is considered successful.
+  ///
+  /// Defaults to `3`.
   final int maxFrameCount;
+
+  /// Minimum ratio of non-spoof frames to total analyzed frames required
+  /// to pass anti-spoofing (0.0 – 1.0).
+  ///
+  /// Even if [maxFrameCount] good frames are collected, the overall pass
+  /// rate must exceed this percentage. Helps catch intermittent spoofing
+  /// where only some frames appear live.
+  ///
+  /// Defaults to `0.6` (60%).
   final double framePassPercentage;
-  final List<String> kycTestEmails;
-  final String? userEmail;
 
-  bool get isAntispoofingEnabled => enableAntispoofing || canTestKyc;
+  /// How often the engine processes a new camera frame for face analysis.
+  ///
+  /// Shorter intervals give faster feedback but use more CPU. On lower-end
+  /// devices, increasing this can reduce heat and battery drain.
+  ///
+  /// Defaults to 500ms.
+  final Duration scanInterval;
 
-  bool get canTestKyc {
-    if (userEmail == null) {
-      return false;
-    }
+  /// Maximum time allowed for each gesture challenge step before it
+  /// times out.
+  ///
+  /// If the user doesn't complete a gesture within this duration, the
+  /// engine emits a timed-out state. The consumer can then decide to
+  /// retry or abort.
+  ///
+  /// Defaults to 20 seconds.
+  final Duration stepTimeout;
 
-    return debugMode &&
-        kycTestEmails
-            .map((email) => email.toLowerCase().trim())
-            .contains(userEmail!.toLowerCase().trim());
-  }
+  /// Maximum time allowed specifically for the initial face detection
+  /// step.
+  ///
+  /// Face detection typically needs more time than gesture steps since
+  /// the user may need to adjust position, lighting, and distance.
+  ///
+  /// Defaults to 60 seconds.
+  final Duration detectFaceTimeout;
+
+  /// Number of consecutive frames where a gesture must be detected before
+  /// the engine considers the step completed.
+  ///
+  /// Higher values reduce false positives (e.g., accidental smiles) but
+  /// require the user to hold the gesture longer. A value of 1 means a
+  /// single detection is enough.
+  ///
+  /// Defaults to `2`.
+  final int gestureConfirmations;
+
+  /// Path to a custom TFLite anti-spoofing model file.
+  ///
+  /// When `null`, the engine uses the bundled `anti_spoof.tflite` model
+  /// from the package assets. Provide a path to override with your own
+  /// model — it must accept a 256x256x3 float32 input tensor and output
+  /// a single float32 liveness probability.
+  final String? customModelPath;
 
   KycConfig copyWith({
+    List<KycFaceRecognitionStage>? challenges,
+    bool? shuffleChallenges,
+    bool? enableAntispoofing,
     int? clearnessThreshold,
     int? clearnessLowerThreshold,
     double? livenessThreshold,
-    bool? enableAntispoofing,
-    bool? debugMode,
     int? maxFrameCount,
     double? framePassPercentage,
-    List<String>? kycTestEmails,
+    Duration? scanInterval,
+    Duration? stepTimeout,
+    Duration? detectFaceTimeout,
+    int? gestureConfirmations,
+    String? customModelPath,
   }) {
     return KycConfig(
+      challenges: challenges ?? this.challenges,
+      shuffleChallenges: shuffleChallenges ?? this.shuffleChallenges,
+      enableAntispoofing: enableAntispoofing ?? this.enableAntispoofing,
       clearnessThreshold: clearnessThreshold ?? this.clearnessThreshold,
       clearnessLowerThreshold:
           clearnessLowerThreshold ?? this.clearnessLowerThreshold,
       livenessThreshold: livenessThreshold ?? this.livenessThreshold,
-      enableAntispoofing: enableAntispoofing ?? this.enableAntispoofing,
       maxFrameCount: maxFrameCount ?? this.maxFrameCount,
       framePassPercentage: framePassPercentage ?? this.framePassPercentage,
-      debugMode: debugMode ?? this.debugMode,
-      kycTestEmails: kycTestEmails ?? this.kycTestEmails,
+      scanInterval: scanInterval ?? this.scanInterval,
+      stepTimeout: stepTimeout ?? this.stepTimeout,
+      detectFaceTimeout: detectFaceTimeout ?? this.detectFaceTimeout,
+      gestureConfirmations: gestureConfirmations ?? this.gestureConfirmations,
+      customModelPath: customModelPath ?? this.customModelPath,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'clearness_threshold': clearnessThreshold,
-        'liveness_threshold': livenessThreshold,
-        'enable_antispoofing': enableAntispoofing,
-        'max_frame_count': maxFrameCount,
-        'frame_pass_percentage': framePassPercentage,
-        'debug_mode': debugMode,
-        'kyc_test_emails': kycTestEmails,
-      };
-
   @override
   String toString() {
-    return '$clearnessThreshold, $livenessThreshold, $enableAntispoofing, $maxFrameCount, $framePassPercentage, $debugMode, $kycTestEmails';
+    return 'KycConfig(challenges: ${challenges.length}, antispoofing: $enableAntispoofing, '
+        'clearness: $clearnessThreshold/$clearnessLowerThreshold, '
+        'liveness: $livenessThreshold, frames: $maxFrameCount)';
   }
 }

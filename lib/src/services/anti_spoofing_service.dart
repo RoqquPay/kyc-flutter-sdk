@@ -17,13 +17,17 @@ import '../models/enums.dart';
 import '../models/spoof_result.dart';
 import 'face_kit.dart';
 
-const _modelAssetPath = 'packages/roqqu_kyc/assets/ml_models/anti_spoof.tflite';
+const _modelAssetPath = 'packages/kyc_engine/assets/ml_models/anti_spoof.tflite';
 const _isolateResponseTimeout = Duration(seconds: 10);
 
 // ---------------------------------------------------------------------------
 // Core inference service (runs inside isolate)
 // ---------------------------------------------------------------------------
 
+/// Low-level anti-spoofing inference service that runs inside an isolate.
+///
+/// Not used directly — [KycAntiSpoofingIsolateService] spawns this in a
+/// background isolate to avoid blocking the UI thread.
 class AntiSpoofingService {
   AntiSpoofingService(this._interpreter, this._config);
 
@@ -152,6 +156,22 @@ class _SpoofIsolateResult {
 // Isolate-based anti-spoofing service
 // ---------------------------------------------------------------------------
 
+/// Isolate-based anti-spoofing service for liveness detection.
+///
+/// Runs TFLite inference in a background isolate to keep the UI thread
+/// responsive. Tracks frame-level and step-level spoof results to
+/// determine overall session authenticity. Can also extract and save
+/// face images for downstream use.
+///
+/// Can be used standalone (Layer 1) or as part of [KycEngine].
+///
+/// ```dart
+/// final service = KycAntiSpoofingIsolateService(config);
+/// await service.start();
+/// final result = await service.runInference(frame, face, step: stage);
+/// print(result.isSpoof);
+/// service.dispose();
+/// ```
 class KycAntiSpoofingIsolateService {
   KycAntiSpoofingIsolateService(this._config);
 
@@ -174,6 +194,9 @@ class KycAntiSpoofingIsolateService {
 
   KycSpoofResult? _lastValidSpoofResult;
 
+  /// The most recent spoof result with valid clearness data.
+  KycSpoofResult? get lastValidResult => _lastValidSpoofResult;
+
   bool _isStarted = false;
 
   int get totalFrameCount => _frameResults.length;
@@ -185,7 +208,7 @@ class KycAntiSpoofingIsolateService {
 
   /// Start the isolate service. Loads the model from bundled assets.
   Future<void> start() async {
-    if (!_config.isAntispoofingEnabled) return;
+    if (!_config.enableAntispoofing) return;
 
     resetState();
     await _loadModelBytes();
@@ -226,7 +249,7 @@ class KycAntiSpoofingIsolateService {
             livenessScore: result.livenessScore,
             shouldAddToHistory: result.shouldAddToHistory,
           ));
-        } catch (e) {
+        } catch (_) {
           message.responsePort.send(_SpoofIsolateResult(
             isSpoof: true,
             shouldAddToHistory: false,
@@ -242,7 +265,7 @@ class KycAntiSpoofingIsolateService {
     Face face, {
     required KycFaceRecognitionStage step,
   }) async {
-    if (!_config.isAntispoofingEnabled) {
+    if (!_config.enableAntispoofing) {
       return const KycSpoofResult(isSpoof: false);
     }
 
@@ -338,7 +361,7 @@ class KycAntiSpoofingIsolateService {
         livenessScore: result.livenessScore,
       );
     } catch (_) {
-      return KycSpoofResult.skipped();
+      rethrow;
     } finally {
       responsePort?.close();
       _processingLock?.complete();
@@ -418,7 +441,7 @@ class KycAntiSpoofingIsolateService {
   }
 
   void dispose() {
-    if (!_config.isAntispoofingEnabled) return;
+    if (!_config.enableAntispoofing) return;
 
     _receivePort?.close();
     _receivePort = null;
