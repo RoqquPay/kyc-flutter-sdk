@@ -98,13 +98,13 @@ class KycFaceDetectionService {
       faceIsWellPositioned = distanceFromCenter < maxDeviation;
     }
 
-    // Check essential landmarks are present
-    final hasEssentialLandmarks = face.landmarks[FaceLandmarkType.leftEar] != null &&
-        face.landmarks[FaceLandmarkType.rightEar] != null &&
-        face.landmarks[FaceLandmarkType.bottomMouth] != null &&
-        face.landmarks[FaceLandmarkType.rightMouth] != null &&
-        face.landmarks[FaceLandmarkType.leftMouth] != null &&
-        face.landmarks[FaceLandmarkType.noseBase] != null;
+    final hasEssentialLandmarks =
+        face.landmarks[FaceLandmarkType.leftEar] != null &&
+            face.landmarks[FaceLandmarkType.rightEar] != null &&
+            face.landmarks[FaceLandmarkType.bottomMouth] != null &&
+            face.landmarks[FaceLandmarkType.rightMouth] != null &&
+            face.landmarks[FaceLandmarkType.leftMouth] != null &&
+            face.landmarks[FaceLandmarkType.noseBase] != null;
 
     if (!hasEssentialLandmarks) {
       faceIsWellPositioned = false;
@@ -117,10 +117,12 @@ class KycFaceDetectionService {
     }
 
     // Check eyes open for well-positioned
-    if (face.leftEyeOpenProbability != null && face.leftEyeOpenProbability! < 0.5) {
+    if (face.leftEyeOpenProbability != null &&
+        face.leftEyeOpenProbability! < 0.5) {
       faceIsWellPositioned = false;
     }
-    if (face.rightEyeOpenProbability != null && face.rightEyeOpenProbability! < 0.5) {
+    if (face.rightEyeOpenProbability != null &&
+        face.rightEyeOpenProbability! < 0.5) {
       faceIsWellPositioned = false;
     }
 
@@ -154,9 +156,9 @@ class KycFaceDetectionService {
 
     // Gate smile behind isFaceInFrame (with eye landmarks)
     final bool isSmiling = _isFaceInFrame(
-              face,
-              extraLandmarks: [FaceLandmarkType.leftEye, FaceLandmarkType.rightEye],
-            ) &&
+          face,
+          extraLandmarks: [FaceLandmarkType.leftEye, FaceLandmarkType.rightEye],
+        ) &&
         (face.smilingProbability ?? 0) > 0.5;
 
     // Gate mouth open behind isFaceInFrame (with eye landmarks)
@@ -239,7 +241,9 @@ class KycFaceDetectionService {
     final pitch = face.headEulerAngleX ?? 0;
     final roll = face.headEulerAngleZ ?? 0;
 
-    if (yaw.abs() > (maxYaw ?? 30) || pitch.abs() > maxPitch || roll.abs() > maxRoll) {
+    if (yaw.abs() > (maxYaw ?? 30) ||
+        pitch.abs() > maxPitch ||
+        roll.abs() > maxRoll) {
       return false;
     }
 

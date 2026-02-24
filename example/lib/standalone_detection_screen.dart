@@ -82,8 +82,7 @@ class _StandaloneDetectionScreenState extends State<StandaloneDetectionScreen> {
 
         try {
           final cameras = await availableCameras();
-          final (inputImage, rotation) =
-              KycFaceKit.inputImageFromCameraImage(
+          final (inputImage, rotation) = KycFaceKit.inputImageFromCameraImage(
             latestFrame!,
             _controller,
             cameras,
@@ -136,7 +135,8 @@ class _StandaloneDetectionScreenState extends State<StandaloneDetectionScreen> {
             children: [
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 16),
-              if (_error!.contains('permission') || _error!.contains('Permission'))
+              if (_error!.contains('permission') ||
+                  _error!.contains('Permission'))
                 FilledButton(
                   onPressed: () => openAppSettings(),
                   child: const Text('Open Settings'),
@@ -152,13 +152,10 @@ class _StandaloneDetectionScreenState extends State<StandaloneDetectionScreen> {
 
     return Column(
       children: [
-        // Camera preview
         Expanded(
           flex: 2,
           child: CameraPreview(_controller!),
         ),
-
-        // Detection results
         Expanded(
           flex: 1,
           child: _buildResults(),

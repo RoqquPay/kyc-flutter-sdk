@@ -68,8 +68,7 @@ class KycEngine {
       KycFaceDetectionService();
   late final KycAntiSpoofingIsolateService _antiSpoofingService =
       KycAntiSpoofingIsolateService(config);
-  late final LivenessSession _livenessSession =
-      LivenessSession(config: config);
+  late final LivenessSession _livenessSession = LivenessSession(config: config);
 
   final StreamController<KycLivenessState> _stateController =
       StreamController<KycLivenessState>.broadcast();
@@ -176,10 +175,6 @@ class KycEngine {
 
     await _stateController.close();
   }
-
-  // ---------------------------------------------------------------------------
-  // Internal pipeline
-  // ---------------------------------------------------------------------------
 
   void _listenToFrames(Stream<CameraImage> stream) {
     _imageSubscription = stream.listen((image) {

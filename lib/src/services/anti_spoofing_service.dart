@@ -17,12 +17,9 @@ import '../models/enums.dart';
 import '../models/spoof_result.dart';
 import 'face_kit.dart';
 
-const _modelAssetPath = 'packages/kyc_engine/assets/ml_models/anti_spoof.tflite';
+const _modelAssetPath =
+    'packages/kyc_engine/assets/ml_models/anti_spoof.tflite';
 const _isolateResponseTimeout = Duration(seconds: 10);
-
-// ---------------------------------------------------------------------------
-// Core inference service (runs inside isolate)
-// ---------------------------------------------------------------------------
 
 /// Low-level anti-spoofing inference service that runs inside an isolate.
 ///
@@ -46,8 +43,8 @@ class AntiSpoofingService {
         clearnessScore: clearness.toDouble(),
         livenessScore: livenessScore,
         message: "Make sure you're in a well-lit environment.",
-        shouldAddToHistory:
-            !(livenessScore <= _config.livenessThreshold && clearness > _config.clearnessLowerThreshold),
+        shouldAddToHistory: !(livenessScore <= _config.livenessThreshold &&
+            clearness > _config.clearnessLowerThreshold),
       );
     }
 
@@ -59,7 +56,8 @@ class AntiSpoofingService {
   }
 
   int laplacian(imglib.Image image) {
-    final img = imglib.grayscale(imglib.copyResize(image, width: 256, height: 256));
+    final img =
+        imglib.grayscale(imglib.copyResize(image, width: 256, height: 256));
     const laplaceKernel = [
       [0, 1, 0],
       [1, -4, 1],
@@ -125,12 +123,9 @@ class AntiSpoofingService {
   }
 }
 
-// ---------------------------------------------------------------------------
-// IPC message types
-// ---------------------------------------------------------------------------
-
 class _AntiSpoofingRequest {
-  _AntiSpoofingRequest(this.image, this.modelBytes, this.config, this.responsePort);
+  _AntiSpoofingRequest(
+      this.image, this.modelBytes, this.config, this.responsePort);
   final imglib.Image image;
   final Uint8List modelBytes;
   final KycConfig config;
@@ -151,10 +146,6 @@ class _SpoofIsolateResult {
   final double? livenessScore;
   final bool shouldAddToHistory;
 }
-
-// ---------------------------------------------------------------------------
-// Isolate-based anti-spoofing service
-// ---------------------------------------------------------------------------
 
 /// Isolate-based anti-spoofing service for liveness detection.
 ///
@@ -276,8 +267,9 @@ class KycAntiSpoofingIsolateService {
       _lastValidSpoofResult = spoofResult;
     }
 
-    final resultToUse =
-        (spoofResult.clearnessScore != null) ? spoofResult : _lastValidSpoofResult;
+    final resultToUse = (spoofResult.clearnessScore != null)
+        ? spoofResult
+        : _lastValidSpoofResult;
 
     if (_frameResults.length < _config.maxFrameCount) {
       if (spoofResult.shouldAddToHistory) {
@@ -294,8 +286,7 @@ class KycAntiSpoofingIsolateService {
       );
     }
 
-    final isSpoof =
-        _frameResults.where((r) => r).length >= _spoofPassThreshold;
+    final isSpoof = _frameResults.where((r) => r).length >= _spoofPassThreshold;
     _frameResults.clear();
 
     return KycSpoofResult(
@@ -343,12 +334,14 @@ class KycAntiSpoofingIsolateService {
 
       responsePort = ReceivePort();
       _sendPort!.send(
-        _AntiSpoofingRequest(croppedFace, _modelBytes!, _config, responsePort.sendPort),
+        _AntiSpoofingRequest(
+            croppedFace, _modelBytes!, _config, responsePort.sendPort),
       );
 
       final result = await responsePort.first.timeout(
         _isolateResponseTimeout,
-        onTimeout: () => _SpoofIsolateResult(isSpoof: true, shouldAddToHistory: false),
+        onTimeout: () =>
+            _SpoofIsolateResult(isSpoof: true, shouldAddToHistory: false),
       ) as _SpoofIsolateResult;
 
       return KycSpoofResult(
@@ -408,21 +401,22 @@ class KycAntiSpoofingIsolateService {
     final y = (rect.top - topPadding).toInt().clamp(0, image.height - 1);
     final cropWidth =
         (rect.width + sidePadding * 2).toInt().clamp(1, image.width - x);
-    final cropHeight =
-        (rect.height + topPadding + bottomPadding).toInt().clamp(1, image.height - y);
+    final cropHeight = (rect.height + topPadding + bottomPadding)
+        .toInt()
+        .clamp(1, image.height - y);
 
-    final croppedFace =
-        imglib.copyCrop(image, x: x, y: y, width: cropWidth, height: cropHeight);
+    final croppedFace = imglib.copyCrop(image,
+        x: x, y: y, width: cropWidth, height: cropHeight);
     final croppedPng = Uint8List.fromList(imglib.encodePng(croppedFace));
 
     final dir = await getTemporaryDirectory();
 
-    final fullImageFile = File(
-        path.join(dir.path, 'full_image_${DateTime.now().millisecondsSinceEpoch}.png'));
+    final fullImageFile = File(path.join(
+        dir.path, 'full_image_${DateTime.now().millisecondsSinceEpoch}.png'));
     await fullImageFile.writeAsBytes(fullImagePng);
 
-    final croppedFaceFile = File(
-        path.join(dir.path, 'face_crop_${DateTime.now().millisecondsSinceEpoch}.png'));
+    final croppedFaceFile = File(path.join(
+        dir.path, 'face_crop_${DateTime.now().millisecondsSinceEpoch}.png'));
     await croppedFaceFile.writeAsBytes(croppedPng);
 
     return {
@@ -452,11 +446,8 @@ class KycAntiSpoofingIsolateService {
     _initCompleter = null;
   }
 
-  // ---------------------------------------------------------------------------
-  // Per-step spoof tracking
-  // ---------------------------------------------------------------------------
-
-  void _processStepHistory(KycSpoofResult spoofResult, KycFaceRecognitionStage step) {
+  void _processStepHistory(
+      KycSpoofResult spoofResult, KycFaceRecognitionStage step) {
     const spoofStepsCheckCount = 3;
     if (!spoofResult.shouldAddToHistory) return;
 
@@ -476,8 +467,6 @@ class KycAntiSpoofingIsolateService {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Camera image conversion utilities
 // ---------------------------------------------------------------------------
 
 imglib.Image convertCameraImageToImage(CameraImage cameraImage) {
@@ -523,10 +512,12 @@ imglib.Image _nv21SinglePlaneToImage(CameraImage cameraImage) {
       final uValue = bytes[uvIndex + 1] & 0xff;
 
       int r = (yValue + 1.370705 * (vValue - 128)).round();
-      int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128)).round();
+      int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128))
+          .round();
       int b = (yValue + 1.732446 * (uValue - 128)).round();
 
-      img.setPixelRgba(x, y, r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255), 255);
+      img.setPixelRgba(
+          x, y, r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255), 255);
     }
   }
 
@@ -588,10 +579,12 @@ imglib.Image _yuv420ToImage(CameraImage cameraImage) {
       final vValue = vPlane[vIndex] & 0xff;
 
       int r = (yValue + 1.370705 * (vValue - 128)).round();
-      int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128)).round();
+      int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128))
+          .round();
       int b = (yValue + 1.732446 * (uValue - 128)).round();
 
-      image.setPixelRgba(x, y, r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255), 255);
+      image.setPixelRgba(
+          x, y, r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255), 255);
     }
   }
 

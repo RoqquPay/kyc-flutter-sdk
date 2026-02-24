@@ -103,7 +103,8 @@ class _LivenessScreenState extends State<LivenessScreen> {
             children: [
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 16),
-              if (_error!.contains('permission') || _error!.contains('Permission'))
+              if (_error!.contains('permission') ||
+                  _error!.contains('Permission'))
                 FilledButton(
                   onPressed: () => openAppSettings(),
                   child: const Text('Open Settings'),
@@ -120,13 +121,10 @@ class _LivenessScreenState extends State<LivenessScreen> {
 
     return Column(
       children: [
-        // Camera preview in oval clip
         Expanded(
           flex: 3,
           child: _buildCameraPreview(),
         ),
-
-        // Challenge instruction + progress
         Expanded(
           flex: 1,
           child: _buildStatusPanel(),
@@ -141,7 +139,6 @@ class _LivenessScreenState extends State<LivenessScreen> {
       return const Center(child: Text('Initializing camera...'));
     }
 
-    // Show completed state with captured selfie
     if (_state.isComplete && _state.capturedImage != null) {
       return _buildCompletionView(_state.capturedImage!);
     }
@@ -152,10 +149,7 @@ class _LivenessScreenState extends State<LivenessScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Background
         Container(color: Colors.black),
-
-        // Oval-clipped camera preview
         SizedBox(
           width: ovalWidth,
           height: ovalHeight,
@@ -170,8 +164,6 @@ class _LivenessScreenState extends State<LivenessScreen> {
             ),
           ),
         ),
-
-        // Oval border — use elliptical radius to match ClipOval exactly
         Container(
           width: ovalWidth,
           height: ovalHeight,
@@ -237,7 +229,6 @@ class _LivenessScreenState extends State<LivenessScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Feedback message
           if (_state.feedback != KycFeedback.none)
             Text(
               _getFeedbackText(),
