@@ -98,9 +98,12 @@ class KycFaceDetectionService {
       faceIsWellPositioned = distanceFromCenter < maxDeviation;
     }
 
+    final hasAtLeastOneEar =
+        face.landmarks[FaceLandmarkType.leftEar] != null ||
+            face.landmarks[FaceLandmarkType.rightEar] != null;
+
     final hasEssentialLandmarks =
-        face.landmarks[FaceLandmarkType.leftEar] != null &&
-            face.landmarks[FaceLandmarkType.rightEar] != null &&
+        hasAtLeastOneEar &&
             face.landmarks[FaceLandmarkType.bottomMouth] != null &&
             face.landmarks[FaceLandmarkType.rightMouth] != null &&
             face.landmarks[FaceLandmarkType.leftMouth] != null &&
@@ -111,8 +114,8 @@ class KycFaceDetectionService {
     }
 
     // Check head rotation for well-positioned
-    if ((face.headEulerAngleY ?? 0).abs() > 2 ||
-        (face.headEulerAngleZ ?? 0).abs() > 2) {
+    if ((face.headEulerAngleY ?? 0).abs() > 12 ||
+        (face.headEulerAngleZ ?? 0).abs() > 12) {
       faceIsWellPositioned = false;
     }
 
@@ -140,7 +143,7 @@ class KycFaceDetectionService {
         ? (eulerY > _faceTurnThreshold)
         : (eulerY < -_faceTurnThreshold);
 
-    final lookingAway = (face.headEulerAngleZ ?? 0).abs() > 5;
+    final lookingAway = (face.headEulerAngleZ ?? 0).abs() > 15;
 
     final bool isFrowning =
         face.smilingProbability != null && face.smilingProbability! < 0.3;
@@ -215,7 +218,7 @@ class KycFaceDetectionService {
     final faceWidthRatio = width / imageSize.width;
     final faceHeightRatio = height / imageSize.height;
 
-    return faceWidthRatio > 0.45 && faceHeightRatio > 0.43;
+    return faceWidthRatio > 0.35 && faceHeightRatio > 0.33;
   }
 
   /// Validate that a face is properly in-frame before reporting gesture

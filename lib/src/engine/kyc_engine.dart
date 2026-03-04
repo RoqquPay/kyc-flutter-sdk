@@ -271,7 +271,7 @@ class KycEngine {
         detectedFace: detectedFace,
         spoofResult: spoofResult,
         feedback: detectedFace.feedback,
-        progress: result.stage.progress,
+        progress: _computeProgress(result.stage),
         isComplete: result.isComplete,
         capturedImage: _capturedImage,
         isCameraReady: true,
@@ -282,6 +282,21 @@ class KycEngine {
     } finally {
       _isProcessing = false;
     }
+  }
+
+  double _computeProgress(KycFaceRecognitionStage stage) {
+    if (stage == KycFaceRecognitionStage.initial ||
+        stage == KycFaceRecognitionStage.detectFace) {
+      return 0;
+    }
+    if (stage == KycFaceRecognitionStage.done) { return 1; }
+
+    final sequence = _livenessSession.sequence;
+    final total = sequence.length + 1;
+    final challengeIndex = sequence.indexOf(stage);
+    if (challengeIndex == -1) return 0;
+
+    return (challengeIndex + 1) / total;
   }
 
   void _reportError(String context, Object error, StackTrace stack) {
