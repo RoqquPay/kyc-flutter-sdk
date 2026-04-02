@@ -1,7 +1,9 @@
+import '../models/difficulty.dart';
 import '../models/enums.dart';
 
 class KycConfig {
   KycConfig({
+    this.difficulty = KycDifficulty.normal,
     this.challenges = const [
       KycFaceRecognitionStage.tiltLeft,
       KycFaceRecognitionStage.tiltRight,
@@ -22,6 +24,13 @@ class KycConfig {
     this.captureStep,
     this.customModelPath,
   });
+
+  /// Controls how strictly face positioning and gesture detection are enforced.
+  ///
+  /// See [KycDifficulty] for a description of each level and what thresholds
+  /// it affects. Defaults to [KycDifficulty.normal], which matches the
+  /// original hardcoded values.
+  final KycDifficulty difficulty;
 
   /// The gesture challenges to present during liveness verification.
   ///
@@ -161,6 +170,7 @@ class KycConfig {
   final String? customModelPath;
 
   KycConfig copyWith({
+    KycDifficulty? difficulty,
     List<KycFaceRecognitionStage>? challenges,
     bool? shuffleChallenges,
     bool? enableAntispoofing,
@@ -177,6 +187,7 @@ class KycConfig {
     String? customModelPath,
   }) {
     return KycConfig(
+      difficulty: difficulty ?? this.difficulty,
       challenges: challenges ?? this.challenges,
       shuffleChallenges: shuffleChallenges ?? this.shuffleChallenges,
       enableAntispoofing: enableAntispoofing ?? this.enableAntispoofing,

@@ -9,6 +9,7 @@ export 'src/models/detected_face.dart';
 export 'src/models/spoof_result.dart';
 export 'src/models/kyc_feedback.dart';
 export 'src/models/enums.dart';
+export 'src/models/difficulty.dart' show KycDifficulty;
 
 export 'src/services/face_kit.dart';
 

@@ -6,6 +6,7 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../core/config.dart';
 import '../models/detected_face.dart';
+import '../models/difficulty.dart';
 import '../models/kyc_feedback.dart';
 
 /// Detects and analyzes faces in camera frames using Google ML Kit.
@@ -84,26 +85,27 @@ class KycFaceDetectionService {
     Size? imageSize,
     InputImageRotation? rotation,
   ) {
+    final s = KycDifficultySettings.fromDifficulty(config.difficulty);
+
     bool faceIsWellPositioned = true;
     bool isFaceCloseEnough = true;
 
     if (imageSize != null) {
-      isFaceCloseEnough = _isFaceCloseEnough(face, imageSize);
+      isFaceCloseEnough = _isFaceCloseEnough(face, imageSize, s);
 
       final faceCenter = face.boundingBox.center;
       final imageCenter = Offset(imageSize.width / 2, imageSize.height / 2);
       final distanceFromCenter = (faceCenter - imageCenter).distance;
-      final maxDeviation = min(imageSize.width, imageSize.height) * 0.2;
+      final maxDeviation = min(imageSize.width, imageSize.height) * s.maxDeviation;
 
       faceIsWellPositioned = distanceFromCenter < maxDeviation;
     }
 
-    final hasAtLeastOneEar =
-        face.landmarks[FaceLandmarkType.leftEar] != null ||
-            face.landmarks[FaceLandmarkType.rightEar] != null;
+    final hasLeftEar = face.landmarks[FaceLandmarkType.leftEar] != null;
+    final hasRightEar = face.landmarks[FaceLandmarkType.rightEar] != null;
 
     final hasEssentialLandmarks =
-        hasAtLeastOneEar &&
+        s.earsAreSatisfied(hasLeft: hasLeftEar, hasRight: hasRightEar) &&
             face.landmarks[FaceLandmarkType.bottomMouth] != null &&
             face.landmarks[FaceLandmarkType.rightMouth] != null &&
             face.landmarks[FaceLandmarkType.leftMouth] != null &&
@@ -114,18 +116,18 @@ class KycFaceDetectionService {
     }
 
     // Check head rotation for well-positioned
-    if ((face.headEulerAngleY ?? 0).abs() > 12 ||
-        (face.headEulerAngleZ ?? 0).abs() > 12) {
+    if ((face.headEulerAngleY ?? 0).abs() > s.maxYawForPositioned ||
+        (face.headEulerAngleZ ?? 0).abs() > s.maxRollForPositioned) {
       faceIsWellPositioned = false;
     }
 
     // Check eyes open for well-positioned
     if (face.leftEyeOpenProbability != null &&
-        face.leftEyeOpenProbability! < 0.5) {
+        face.leftEyeOpenProbability! < s.eyeOpenProbability) {
       faceIsWellPositioned = false;
     }
     if (face.rightEyeOpenProbability != null &&
-        face.rightEyeOpenProbability! < 0.5) {
+        face.rightEyeOpenProbability! < s.eyeOpenProbability) {
       faceIsWellPositioned = false;
     }
 
@@ -143,7 +145,7 @@ class KycFaceDetectionService {
         ? (eulerY > _faceTurnThreshold)
         : (eulerY < -_faceTurnThreshold);
 
-    final lookingAway = (face.headEulerAngleZ ?? 0).abs() > 15;
+    final lookingAway = (face.headEulerAngleZ ?? 0).abs() > s.lookingAwayThreshold;
 
     final bool isFrowning =
         face.smilingProbability != null && face.smilingProbability! < 0.3;
@@ -152,32 +154,34 @@ class KycFaceDetectionService {
     bool isBlinking = false;
     final leftProb = face.leftEyeOpenProbability;
     final rightProb = face.rightEyeOpenProbability;
-    if ((leftProb != null && leftProb < 0.4) ||
-        (rightProb != null && rightProb < 0.4)) {
+    if ((leftProb != null && leftProb < s.blinkThreshold) ||
+        (rightProb != null && rightProb < s.blinkThreshold)) {
       isBlinking = true;
     }
 
     // Gate smile behind isFaceInFrame (with eye landmarks)
     final bool isSmiling = _isFaceInFrame(
           face,
+          settings: s,
           extraLandmarks: [FaceLandmarkType.leftEye, FaceLandmarkType.rightEye],
         ) &&
-        (face.smilingProbability ?? 0) > 0.5;
+        (face.smilingProbability ?? 0) > s.smilingProbability;
 
     // Gate mouth open behind isFaceInFrame (with eye landmarks)
     bool isMouthOpen = false;
     if (_isFaceInFrame(
       face,
+      settings: s,
       extraLandmarks: [FaceLandmarkType.leftEye, FaceLandmarkType.rightEye],
     )) {
-      isMouthOpen = _detectMouthOpen(face);
+      isMouthOpen = _detectMouthOpen(face, s);
     }
 
     // Gate turnedLeft/Right behind isFaceInFrame (with relaxed yaw)
     final bool guardedTurnedLeft =
-        _isFaceInFrame(face, maxYaw: 60) && turnedLeft;
+        _isFaceInFrame(face, settings: s, maxYaw: 60) && turnedLeft;
     final bool guardedTurnedRight =
-        _isFaceInFrame(face, maxYaw: 60) && turnedRight;
+        _isFaceInFrame(face, settings: s, maxYaw: 60) && turnedRight;
 
     final isNodding = false;
 
@@ -208,7 +212,7 @@ class KycFaceDetectionService {
   }
 
   /// Check if the face occupies enough of the frame to be considered close.
-  bool _isFaceCloseEnough(Face face, Size imageSize) {
+  bool _isFaceCloseEnough(Face face, Size imageSize, KycDifficultySettings s) {
     final box = face.boundingBox;
     final x = box.left.toInt().clamp(0, imageSize.width.toInt() - 1);
     final y = box.top.toInt().clamp(0, imageSize.height.toInt() - 1);
@@ -218,13 +222,14 @@ class KycFaceDetectionService {
     final faceWidthRatio = width / imageSize.width;
     final faceHeightRatio = height / imageSize.height;
 
-    return faceWidthRatio > 0.35 && faceHeightRatio > 0.33;
+    return faceWidthRatio > s.faceWidthRatio && faceHeightRatio > s.faceHeightRatio;
   }
 
   /// Validate that a face is properly in-frame before reporting gesture
   /// detection. Checks essential landmarks and yaw/pitch/roll bounds.
   bool _isFaceInFrame(
     Face face, {
+    required KycDifficultySettings settings,
     List<FaceLandmarkType>? extraLandmarks,
     int? maxYaw,
   }) {
@@ -238,15 +243,13 @@ class KycFaceDetectionService {
       if (face.landmarks[landmark] == null) return false;
     }
 
-    const maxPitch = 25;
-    const maxRoll = 20;
     final yaw = face.headEulerAngleY ?? 0;
     final pitch = face.headEulerAngleX ?? 0;
     final roll = face.headEulerAngleZ ?? 0;
 
     if (yaw.abs() > (maxYaw ?? 30) ||
-        pitch.abs() > maxPitch ||
-        roll.abs() > maxRoll) {
+        pitch.abs() > settings.maxPitch ||
+        roll.abs() > settings.maxRoll) {
       return false;
     }
 
@@ -254,7 +257,7 @@ class KycFaceDetectionService {
   }
 
   /// Detect mouth open using lip contour distances, normalized by face height.
-  bool _detectMouthOpen(Face face) {
+  bool _detectMouthOpen(Face face, KycDifficultySettings s) {
     final upperLip = face.contours[FaceContourType.upperLipBottom]?.points;
     final lowerLip = face.contours[FaceContourType.lowerLipTop]?.points;
 
@@ -268,6 +271,6 @@ class KycFaceDetectionService {
     final faceHeight = face.boundingBox.height;
     final normalizedDistance = lipDistance / faceHeight;
 
-    return normalizedDistance >= 0.07;
+    return normalizedDistance >= s.mouthOpenThreshold;
   }
 }
