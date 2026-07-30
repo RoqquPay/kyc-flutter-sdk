@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 
@@ -11,7 +12,7 @@ class CameraService {
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   final StreamController<CameraImage> _imageStreamController =
-      StreamController<CameraImage>.broadcast();
+  StreamController<CameraImage>.broadcast();
 
   /// The active camera controller, or `null` if not initialized.
   CameraController? get controller => _controller;
@@ -23,8 +24,7 @@ class CameraService {
   Stream<CameraImage> get imageStream => _imageStreamController.stream;
 
   /// Whether the camera is initialized and actively streaming.
-  bool get isReady =>
-      _controller != null && _controller!.value.isInitialized;
+  bool get isReady => _controller != null && _controller!.value.isInitialized;
 
   /// Initializes the front-facing camera and starts the image stream.
   ///
@@ -43,7 +43,7 @@ class CameraService {
       throw CameraException(
         e.code,
         'Failed to enumerate cameras. Ensure camera permission is granted. '
-        'Original error: ${e.description}',
+            'Original error: ${e.description}',
       );
     }
 
@@ -55,7 +55,7 @@ class CameraService {
     }
 
     final frontCamera = _cameras.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.front,
+          (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => _cameras.first,
     );
 
@@ -63,7 +63,7 @@ class CameraService {
       frontCamera,
       resolution,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.nv21,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
 
     try {
@@ -72,7 +72,7 @@ class CameraService {
       throw CameraException(
         e.code,
         'Camera initialization failed. If permission was denied, grant camera '
-        'access in device settings. Original error: ${e.description}',
+            'access in device settings. Original error: ${e.description}',
       );
     }
 
