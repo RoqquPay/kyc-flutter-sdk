@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/widgets.dart';
 import '../core/config.dart';
 import '../models/enums.dart';
 import '../services/anti_spoofing_service.dart';
@@ -81,6 +82,8 @@ class KycEngine {
   File? _capturedImage;
 
   CameraImage? _latestFrame;
+  bool _isForeground = true;
+  _EngineLifecycleObserver? _lifecycleObserver;
   CameraController? _externalController;
   List<CameraDescription> _externalCameras = [];
 
@@ -165,6 +168,8 @@ class KycEngine {
   /// kills the anti-spoofing isolate, and closes the state stream.
   Future<void> dispose() async {
     _scanTimer?.cancel();
+    final observer = _lifecycleObserver;
+    if (observer != null) WidgetsBinding.instance.removeObserver(observer);
     await _imageSubscription?.cancel();
     _antiSpoofingService.dispose();
     await _faceDetectionService.dispose();
@@ -177,8 +182,17 @@ class KycEngine {
   }
 
   void _listenToFrames(Stream<CameraImage> stream) {
+    final lifecycleState = WidgetsBinding.instance.lifecycleState;
+    _isForeground = lifecycleState == null ||
+        lifecycleState == AppLifecycleState.resumed;
+    if (_lifecycleObserver == null) {
+      final observer = _EngineLifecycleObserver(_onLifecycleChanged);
+      WidgetsBinding.instance.addObserver(observer);
+      _lifecycleObserver = observer;
+    }
+
     _imageSubscription = stream.listen((image) {
-      _latestFrame = image;
+      if (_isForeground) _latestFrame = image;
     });
 
     _scanTimer = Timer.periodic(config.scanInterval, (_) {
@@ -186,8 +200,13 @@ class KycEngine {
     });
   }
 
+  void _onLifecycleChanged(AppLifecycleState state) {
+    _isForeground = state == AppLifecycleState.resumed;
+    if (!_isForeground) _latestFrame = null;
+  }
+
   Future<void> _processLatestFrame() async {
-    if (_isProcessing || _latestFrame == null) return;
+    if (!_isForeground || _isProcessing || _latestFrame == null) return;
     if (_stateController.isClosed) return;
 
     final currentStage = _livenessSession.currentStage;
@@ -197,6 +216,7 @@ class KycEngine {
 
     try {
       final frame = _latestFrame!;
+      _latestFrame = null;
       final controller = cameraController;
 
       // 1. Convert camera frame to InputImage
@@ -308,4 +328,13 @@ class KycEngine {
       _stateController.add(state);
     }
   }
+}
+
+class _EngineLifecycleObserver with WidgetsBindingObserver {
+  _EngineLifecycleObserver(this.onChanged);
+
+  final ValueChanged<AppLifecycleState> onChanged;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => onChanged(state);
 }
