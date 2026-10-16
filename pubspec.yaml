@@ -34,5 +34,13 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.roqqu.kyc_engine
+        pluginClass: KycEnginePlugin
+      ios:
+        pluginClass: KycEnginePlugin
+
   assets:
     - assets/ml_models/anti_spoof.tflite

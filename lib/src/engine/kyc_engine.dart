@@ -8,6 +8,7 @@ import '../services/anti_spoofing_service.dart';
 import '../services/face_detection_service.dart';
 import '../services/face_kit.dart';
 import '../services/liveness_session.dart';
+import '../services/video_recorder.dart';
 import 'camera_service.dart';
 import 'liveness_state.dart';
 
@@ -69,6 +70,11 @@ class KycEngine {
   late final KycAntiSpoofingIsolateService _antiSpoofingService =
       KycAntiSpoofingIsolateService(config);
   late final LivenessSession _livenessSession = LivenessSession(config: config);
+  late final KycVideoRecorder? _videoRecorder = config.recordVideo
+      ? KycVideoRecorder(
+          onError: (e, stack) => _reportError('Liveness video failed', e, stack),
+        )
+      : null;
 
   final StreamController<KycLivenessState> _stateController =
       StreamController<KycLivenessState>.broadcast();
@@ -159,6 +165,14 @@ class KycEngine {
     _emitState(KycLivenessState.initial().copyWith(isCameraReady: true));
   }
 
+  /// Returns the liveness video recorded since the previous call, or `null`.
+  ///
+  /// Requires [KycConfig.recordVideo]. The clip starts when a face first
+  /// appeared, keeps at most the last 20 seconds, and ends now; a fresh clip
+  /// begins afterwards. Never throws: if recording failed or was unavailable
+  /// it returns `null` and the cause is passed to [onError].
+  Future<File?> takeVideo() async => await _videoRecorder?.take();
+
   /// Fully disposes the engine, releasing all resources.
   ///
   /// Stops the camera (if SDK-managed), closes the face detector,
@@ -166,6 +180,7 @@ class KycEngine {
   Future<void> dispose() async {
     _scanTimer?.cancel();
     await _imageSubscription?.cancel();
+    await _videoRecorder?.dispose();
     _antiSpoofingService.dispose();
     await _faceDetectionService.dispose();
 
@@ -179,6 +194,7 @@ class KycEngine {
   void _listenToFrames(Stream<CameraImage> stream) {
     _imageSubscription = stream.listen((image) {
       _latestFrame = image;
+      _videoRecorder?.addFrame(image, cameraController);
     });
 
     _scanTimer = Timer.periodic(config.scanInterval, (_) {
@@ -217,6 +233,7 @@ class KycEngine {
         config,
         rotation: rotation,
       );
+      if (detectedFace.face != null) _videoRecorder?.arm();
 
       // 3. Run anti-spoofing if enabled and on detectFace step
       var spoofResult = _antiSpoofingService.lastValidResult;

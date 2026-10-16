@@ -43,8 +43,7 @@ class KycFaceDetectionService {
 
   /// Process an [InputImage] and return a [KycDetectedFace] with analysis.
   ///
-  /// [rotation] is used to determine if left/right turn detection should
-  /// be inverted (required on some device/camera rotation combos).
+  /// [rotation] is the frame rotation, used to orient the positioning checks.
   Future<KycDetectedFace> processImage(
     InputImage inputImage,
     KycConfig config, {
@@ -75,14 +74,13 @@ class KycFaceDetectionService {
       effectiveSize = Size(effectiveSize.height, effectiveSize.width);
     }
 
-    return _analyzeFace(face, config, effectiveSize, rotation);
+    return _analyzeFace(face, config, effectiveSize);
   }
 
   KycDetectedFace _analyzeFace(
     Face face,
     KycConfig config,
     Size? imageSize,
-    InputImageRotation? rotation,
   ) {
     bool faceIsWellPositioned = true;
     bool isFaceCloseEnough = true;
@@ -129,11 +127,10 @@ class KycFaceDetectionService {
       faceIsWellPositioned = false;
     }
 
-    // Determine left/right turn with rotation-aware inversion
+    // Turn direction flips only for mirrored frames: the camera plugin mirrors
+    // the front camera on iOS and never on Android, whatever the rotation.
     final double eulerY = face.headEulerAngleY ?? 0;
-    final bool shouldInvert = rotation == InputImageRotation.rotation90deg ||
-        rotation == InputImageRotation.rotation0deg ||
-        rotation == InputImageRotation.rotation180deg;
+    final bool shouldInvert = Platform.isIOS;
 
     final bool turnedLeft = shouldInvert
         ? (eulerY < -_faceTurnThreshold)
