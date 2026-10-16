@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/widgets.dart';
 import '../core/config.dart';
 import '../models/enums.dart';
 import '../services/anti_spoofing_service.dart';
 import '../services/face_detection_service.dart';
 import '../services/face_kit.dart';
 import '../services/liveness_session.dart';
+import '../services/video_recorder.dart';
 import 'camera_service.dart';
 import 'liveness_state.dart';
 
@@ -69,6 +71,11 @@ class KycEngine {
   late final KycAntiSpoofingIsolateService _antiSpoofingService =
       KycAntiSpoofingIsolateService(config);
   late final LivenessSession _livenessSession = LivenessSession(config: config);
+  late final KycVideoRecorder? _videoRecorder = config.recordVideo
+      ? KycVideoRecorder(
+          onError: (e, stack) => _reportError('Liveness video failed', e, stack),
+        )
+      : null;
 
   final StreamController<KycLivenessState> _stateController =
       StreamController<KycLivenessState>.broadcast();
@@ -81,6 +88,8 @@ class KycEngine {
   File? _capturedImage;
 
   CameraImage? _latestFrame;
+  bool _isForeground = true;
+  _EngineLifecycleObserver? _lifecycleObserver;
   CameraController? _externalController;
   List<CameraDescription> _externalCameras = [];
 
@@ -159,13 +168,24 @@ class KycEngine {
     _emitState(KycLivenessState.initial().copyWith(isCameraReady: true));
   }
 
+  /// Returns the liveness video recorded since the previous call, or `null`.
+  ///
+  /// Requires [KycConfig.recordVideo]. The clip starts when a face first
+  /// appeared, keeps at most the last 20 seconds, and ends now; a fresh clip
+  /// begins afterwards. Never throws: if recording failed or was unavailable
+  /// it returns `null` and the cause is passed to [onError].
+  Future<File?> takeVideo() async => await _videoRecorder?.take();
+
   /// Fully disposes the engine, releasing all resources.
   ///
   /// Stops the camera (if SDK-managed), closes the face detector,
   /// kills the anti-spoofing isolate, and closes the state stream.
   Future<void> dispose() async {
     _scanTimer?.cancel();
+    final observer = _lifecycleObserver;
+    if (observer != null) WidgetsBinding.instance.removeObserver(observer);
     await _imageSubscription?.cancel();
+    await _videoRecorder?.dispose();
     _antiSpoofingService.dispose();
     await _faceDetectionService.dispose();
 
@@ -177,8 +197,19 @@ class KycEngine {
   }
 
   void _listenToFrames(Stream<CameraImage> stream) {
+    final lifecycleState = WidgetsBinding.instance.lifecycleState;
+    _isForeground = lifecycleState == null ||
+        lifecycleState == AppLifecycleState.resumed;
+    if (_lifecycleObserver == null) {
+      final observer = _EngineLifecycleObserver(_onLifecycleChanged);
+      WidgetsBinding.instance.addObserver(observer);
+      _lifecycleObserver = observer;
+    }
+
     _imageSubscription = stream.listen((image) {
+      if (!_isForeground) return;
       _latestFrame = image;
+      _videoRecorder?.addFrame(image, cameraController);
     });
 
     _scanTimer = Timer.periodic(config.scanInterval, (_) {
@@ -186,8 +217,13 @@ class KycEngine {
     });
   }
 
+  void _onLifecycleChanged(AppLifecycleState state) {
+    _isForeground = state == AppLifecycleState.resumed;
+    if (!_isForeground) _latestFrame = null;
+  }
+
   Future<void> _processLatestFrame() async {
-    if (_isProcessing || _latestFrame == null) return;
+    if (!_isForeground || _isProcessing || _latestFrame == null) return;
     if (_stateController.isClosed) return;
 
     final currentStage = _livenessSession.currentStage;
@@ -197,6 +233,7 @@ class KycEngine {
 
     try {
       final frame = _latestFrame!;
+      _latestFrame = null;
       final controller = cameraController;
 
       // 1. Convert camera frame to InputImage
@@ -217,6 +254,7 @@ class KycEngine {
         config,
         rotation: rotation,
       );
+      if (detectedFace.face != null) _videoRecorder?.arm();
 
       // 3. Run anti-spoofing if enabled and on detectFace step
       var spoofResult = _antiSpoofingService.lastValidResult;
@@ -308,4 +346,13 @@ class KycEngine {
       _stateController.add(state);
     }
   }
+}
+
+class _EngineLifecycleObserver with WidgetsBindingObserver {
+  _EngineLifecycleObserver(this.onChanged);
+
+  final ValueChanged<AppLifecycleState> onChanged;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => onChanged(state);
 }

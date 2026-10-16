@@ -21,6 +21,7 @@ class KycConfig {
     this.gestureConfirmations = 2,
     this.captureStep,
     this.customModelPath,
+    this.recordVideo = false,
   });
 
   /// The gesture challenges to present during liveness verification.
@@ -160,6 +161,15 @@ class KycConfig {
   /// a single float32 liveness probability.
   final String? customModelPath;
 
+  /// Whether to record a short H.264 mp4 of the session for compliance.
+  ///
+  /// Recording starts when a face first appears and keeps at most the last
+  /// 20 seconds. Retrieve the clip with [KycEngine.takeVideo]. Failures never
+  /// interrupt liveness; they are reported through the engine's `onError`.
+  ///
+  /// Defaults to `false`.
+  final bool recordVideo;
+
   KycConfig copyWith({
     List<KycFaceRecognitionStage>? challenges,
     bool? shuffleChallenges,
@@ -175,6 +185,7 @@ class KycConfig {
     int? gestureConfirmations,
     KycFaceRecognitionStage? captureStep,
     String? customModelPath,
+    bool? recordVideo,
   }) {
     return KycConfig(
       challenges: challenges ?? this.challenges,
@@ -192,6 +203,7 @@ class KycConfig {
       gestureConfirmations: gestureConfirmations ?? this.gestureConfirmations,
       captureStep: captureStep ?? this.captureStep,
       customModelPath: customModelPath ?? this.customModelPath,
+      recordVideo: recordVideo ?? this.recordVideo,
     );
   }
 
