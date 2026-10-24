@@ -1,0 +1,23 @@
+name: kyc_engine_example
+description: "Example app demonstrating kyc_engine plugin usage."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  kyc_engine:
+    path: ../
+  camera: ^0.11.0+2
+  permission_handler: ^11.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
