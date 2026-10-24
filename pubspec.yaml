@@ -19,7 +19,7 @@ dependencies:
   google_mlkit_face_detection: ^0.13.2
 
   # TensorFlow Lite for anti-spoofing
-  tflite_flutter: ^0.11.0
+  tflite_flutter: ^0.12.1
 
   # File handling
   path_provider: ^2.1.4
